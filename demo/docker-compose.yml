@@ -1,0 +1,41 @@
+services:
+  loader:
+    profiles: ["manual"]
+    volumes:
+      - photo_data:/photos
+    build:
+      context: .
+      dockerfile: Dockerfile
+  indexer:
+    restart: always
+    build:
+      context: ../backend/PhotoDatabase
+      dockerfile: PhotoDatabaseIndexer/Dockerfile
+    command: dotnet run
+    volumes:
+      - ./config-indexer:/app/config
+      - photo_data:/photos
+      - photo_data:/photo-database
+
+  webapi:
+    restart: always
+    build:
+      context: ../backend/PhotoDatabase
+      dockerfile: PhotoDatabaseWebApi/Dockerfile
+    command: dotnet run
+    volumes:
+      - ./config-webapi:/app/config
+      - photo_data:/photo-database
+    ports:
+      - "8066:8080"
+
+  webclient:
+    restart: always
+    build:
+      context: ../frontend/photo-database-web
+      dockerfile: Dockerfile
+    command: yarn run dev
+    ports:
+      - "8067:8081"
+volumes:
+  photo_data:
