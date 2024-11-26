@@ -18,6 +18,7 @@ export type TagEntry = {
   icon: string
 }
 
+// Change here to define your custom tags 
 export const definedTags: TagEntry[] = [
   {
     tag: "fav",
