@@ -83,6 +83,7 @@ The easiest way to install PhotoDB is to clone the demo configuration (see folde
 - save dominant color for thumbnail
 - index photos from other sources than file system
 - more mature database rather than SQLite
+- support for more image formats, including RAWs
 - configurable plugins to perform automatic indexing and tag assignment:
   - AI to describe image
   - detect whether rotation information is correct
