@@ -13,6 +13,7 @@ const ZOOM_PREVIEW_HEIGHT = 320
 const MIN_ZOOM = 1.5
 const MAX_ZOOM = 12
 const DEFAULT_ZOOM = 3
+let lastZoomLevel = DEFAULT_ZOOM
 const POPUP_OFFSET = 24
 
 type PhotoProps = {
@@ -36,7 +37,9 @@ export function Photo({
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [clientPos, setClientPos] = useState({ x: 0, y: 0 })
   const [showZoom, setShowZoom] = useState(false)
-  const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM)
+  // null = not manually adjusted yet → fall back to shared lastZoomLevel at render time
+  const [manualZoom, setManualZoom] = useState<number | null>(null)
+  const zoomLevel = manualZoom ?? lastZoomLevel
   const containerRef = useRef<HTMLDivElement>(null)
   // Ref so keydown/keyup closures always see the latest hover state without re-registering
   const isHoveredRef = useRef(false)
@@ -64,7 +67,11 @@ export function Photo({
       if (!e.shiftKey) return
       e.preventDefault()
       const delta = e.deltaY < 0 ? 0.5 : -0.5
-      setZoomLevel((prev) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta)))
+      setManualZoom((prev) => {
+        const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, (prev ?? lastZoomLevel) + delta))
+        lastZoomLevel = next
+        return next
+      })
     }
     el.addEventListener("wheel", onWheel, { passive: false })
     return () => el.removeEventListener("wheel", onWheel)
@@ -227,7 +234,7 @@ export function Photo({
             }}
           >
             <img
-              src={`${baseUrl}/photos/thumbnail/${photo.id}`}
+              src={`${baseUrl}/photos/full/${photo.id}`}
               style={{
                 position: "absolute",
                 width: photo.thumbnailWidth * scale * zoomLevel,
