@@ -26,6 +26,7 @@ import { Card, CardContent } from "./components/ui/card"
 import { Button } from "./components/ui/button"
 
 function App() {
+  console.log(`baseUrl: ${baseUrl}`)
   const [photos, setPhotos] = useState<PhotoRecord[]>([])
   const photosState = useAsync(async () => {
     const response = await fetch(`${baseUrl}/photos/all`)
@@ -42,7 +43,7 @@ function App() {
   const defaultPageSize = 100
   const [pageSizeSaved, setPageSizeSaved] = useLocalStorage(
     "pageSize",
-    defaultPageSize
+    defaultPageSize,
   )
   const pageSize = pageSizeSaved ?? defaultPageSize
   const [currentPageIndex, setCurrentPageIndex] = useState(0)
@@ -95,14 +96,14 @@ function App() {
 
   const allMonths = lodash.sortBy(
     lodash.uniq(photos.map((p) => p.referenceDate.substring(0, 7))),
-    (m) => m
+    (m) => m,
   )
 
   let filteredPhotos = photos
 
   if (selectedMonth) {
     filteredPhotos = filteredPhotos.filter((p) =>
-      p.referenceDate.startsWith(selectedMonth)
+      p.referenceDate.startsWith(selectedMonth),
     )
   }
   if (selectedTag) {
@@ -117,7 +118,7 @@ function App() {
 
   const photosOnPage = filteredPhotos.slice(
     currentPageIndex * pageSize,
-    (currentPageIndex + 1) * pageSize
+    (currentPageIndex + 1) * pageSize,
   )
 
   if (photosOnPage.length === 0 && currentPageIndex > 0) {
@@ -126,7 +127,7 @@ function App() {
 
   useEffect(
     () => window.scrollTo({ top: 0, behavior: "smooth" }),
-    [pageSizeSaved, currentPageIndex, selectedTag, selectedMonth, scaleSaved]
+    [pageSizeSaved, currentPageIndex, selectedTag, selectedMonth, scaleSaved],
   )
 
   const MonthSelector = () => (
