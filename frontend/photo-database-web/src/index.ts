@@ -9,7 +9,7 @@ export type PhotoRecord = {
   fileSize: number
   thumbnailWidth: number
   thumbnailHeight: number
-  tags: string
+  tags: string // comma-separated tag ids
 }
 
 export type TagEntry = {
@@ -18,31 +18,22 @@ export type TagEntry = {
   icon: string
 }
 
-// Change here to define your custom tags 
+// Change here to define your custom tags
 export const definedTags: TagEntry[] = [
-  {
-    tag: "fav",
-    label: "Favorite",
-    icon: "ph-star",
-  },
-  {
-    tag: "hot",
-    label: "Hot",
-    icon: "ph-fire",
-  },
-  {
-    tag: "single",
-    label: "Single",
-    icon: "ph-person",
-  },
-  {
-    tag: "pair",
-    label: "Pair",
-    icon: "ph-users",
-  },
-  {
-    tag: "family",
-    label: "Family",
-    icon: "ph-hand-heart",
-  },
+  { tag: "fav", label: "Favourite", icon: "ph-star" },
+  { tag: "hot", label: "Hot", icon: "ph-fire" },
+  { tag: "single", label: "Single", icon: "ph-person" },
+  { tag: "pair", label: "Pair", icon: "ph-users" },
+  { tag: "family", label: "Family", icon: "ph-hand-heart" },
 ]
+
+export function parseTags(tags: string): string[] {
+  return tags ? tags.split(",").filter(Boolean) : []
+}
+
+export function photoRatio(photo: PhotoRecord): number {
+  if (photo.width && photo.height) return photo.width / photo.height
+  if (photo.thumbnailWidth && photo.thumbnailHeight)
+    return photo.thumbnailWidth / photo.thumbnailHeight
+  return 1.5
+}

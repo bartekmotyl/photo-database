@@ -1,12 +1,23 @@
 import { format, parseISO } from "date-fns"
-import { baseUrl, definedTags, PhotoRecord, TagEntry } from "."
+import { baseUrl, definedTags, parseTags, PhotoRecord } from "."
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "./components/ui/tooltip"
+  Flame,
+  Heart,
+  User,
+  Users,
+  UsersRound,
+  type LucideIcon,
+} from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { createPortal } from "react-dom"
+
+const TAG_ICON_MAP: Record<string, LucideIcon> = {
+  fav: Heart,
+  hot: Flame,
+  single: User,
+  pair: Users,
+  family: UsersRound,
+}
 
 const ZOOM_PREVIEW_WIDTH = 420
 const ZOOM_PREVIEW_HEIGHT = 320
@@ -17,31 +28,30 @@ let lastZoomLevel = DEFAULT_ZOOM
 const POPUP_OFFSET = 24
 
 type PhotoProps = {
-  scale: number
   photo: PhotoRecord
+  renderWidth: number
+  renderHeight: number
+  dense?: boolean
+  onOpen?: (photo: PhotoRecord) => void
   onPhotoUpdated: (photo: PhotoRecord) => void
-  onNavigation?: (photo: PhotoRecord) => void
 }
 
 export function Photo({
-  scale,
   photo,
+  renderWidth,
+  renderHeight,
+  dense = false,
+  onOpen,
   onPhotoUpdated,
-  onNavigation,
 }: PhotoProps) {
-  const tagsArray = photo.tags.split(",")
-  const [showTags] = useState(true)
-  const [showDate] = useState(true)
-  const [showActions] = useState(true)
+  const tagsArray = parseTags(photo.tags)
 
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [clientPos, setClientPos] = useState({ x: 0, y: 0 })
   const [showZoom, setShowZoom] = useState(false)
-  // null = not manually adjusted yet → fall back to shared lastZoomLevel at render time
   const [manualZoom, setManualZoom] = useState<number | null>(null)
   const zoomLevel = manualZoom ?? lastZoomLevel
   const containerRef = useRef<HTMLDivElement>(null)
-  // Ref so keydown/keyup closures always see the latest hover state without re-registering
   const isHoveredRef = useRef(false)
 
   useEffect(() => {
@@ -59,7 +69,6 @@ export function Photo({
     }
   }, [])
 
-  // Non-passive wheel listener so preventDefault can suppress page scroll while zooming
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -68,7 +77,10 @@ export function Photo({
       e.preventDefault()
       const delta = e.deltaY < 0 ? 0.5 : -0.5
       setManualZoom((prev) => {
-        const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, (prev ?? lastZoomLevel) + delta))
+        const next = Math.max(
+          MIN_ZOOM,
+          Math.min(MAX_ZOOM, (prev ?? lastZoomLevel) + delta),
+        )
         lastZoomLevel = next
         return next
       })
@@ -94,127 +106,122 @@ export function Photo({
     setShowZoom(false)
   }
 
-  // Position popup to the right of cursor, clamped to viewport bounds
   const vw = window.innerWidth
   const vh = window.innerHeight
   let popupLeft = clientPos.x + POPUP_OFFSET
   let popupTop = clientPos.y - ZOOM_PREVIEW_HEIGHT / 2
-  if (popupLeft + ZOOM_PREVIEW_WIDTH > vw) popupLeft = clientPos.x - ZOOM_PREVIEW_WIDTH - POPUP_OFFSET
+  if (popupLeft + ZOOM_PREVIEW_WIDTH > vw)
+    popupLeft = clientPos.x - ZOOM_PREVIEW_WIDTH - POPUP_OFFSET
   if (popupTop < 4) popupTop = 4
-  if (popupTop + ZOOM_PREVIEW_HEIGHT > vh - 4) popupTop = vh - ZOOM_PREVIEW_HEIGHT - 4
+  if (popupTop + ZOOM_PREVIEW_HEIGHT > vh - 4)
+    popupTop = vh - ZOOM_PREVIEW_HEIGHT - 4
 
-  // Offset the zoomed image so the point under the cursor maps to the preview center
   const imgLeft = ZOOM_PREVIEW_WIDTH / 2 - mousePos.x * zoomLevel
   const imgTop = ZOOM_PREVIEW_HEIGHT / 2 - mousePos.y * zoomLevel
 
-  const tagClicked = async (tag: TagEntry) => {
-    const isIncluded = photo.tags.includes(tag.tag)
+  const tagClicked = async (e: React.MouseEvent, tag: string) => {
+    e.stopPropagation()
+    const isIncluded = tagsArray.includes(tag)
     const url = isIncluded
       ? `${baseUrl}/photos/removeTags`
       : `${baseUrl}/photos/addTags`
-    const myHeaders = new Headers()
-    myHeaders.append("Content-Type", "application/json")
-
-    const updatedPhoto = {
+    const updatedPhoto: PhotoRecord = {
       ...photo,
       tags: isIncluded
-        ? tagsArray.filter((t) => t !== tag.tag).join(",")
-        : [...tagsArray, tag.tag].join(","),
+        ? tagsArray.filter((t) => t !== tag).join(",")
+        : [...tagsArray, tag].join(","),
     }
-
     await fetch(url, {
-      body: JSON.stringify([{ photoId: photo.id, tags: [tag.tag] }]),
+      body: JSON.stringify([{ photoId: photo.id, tags: [tag] }]),
       method: "PATCH",
-      headers: myHeaders,
+      headers: { "Content-Type": "application/json" },
     })
-
     onPhotoUpdated(updatedPhoto)
   }
 
-  const openInTab = () => {
-    window.open(`${baseUrl}/photos/full/${photo.id}`, "_blank")
-  }
-
-  const navigate = () => {
-    if (onNavigation) {
-      onNavigation(photo)
-    }
-  }
-
   const date = parseISO(photo.referenceDate)
-  const popupIcon = "ph-arrow-square-out"
-  const navigateIcon = "ph-gps-fix"
+  const chipSize = dense ? 18 : 22
+  const iconSize = dense ? 10 : 12
+  const appliedTags = definedTags.filter((dt) => tagsArray.includes(dt.tag))
 
   return (
     <div
       ref={containerRef}
-      className="relative"
-      style={{
-        width: `${photo.thumbnailWidth * scale}px`,
-        height: `${photo.thumbnailHeight * scale}px`,
-      }}
+      className="group relative overflow-hidden rounded-[7px] bg-neutral-200 select-none w-full h-full"
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       <img
-        className="h-auto rounded-lg object-cover shadow-slate-600 shadow-md"
-        key={`${photo.id}`}
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+        key={photo.id}
         loading="lazy"
         src={`${baseUrl}/photos/thumbnail/${photo.id}`}
-        width={photo.thumbnailWidth * scale}
-        height={photo.thumbnailHeight * scale}
+        draggable={false}
+        alt=""
       />
-      {showTags && (
-        <div className="absolute top-2 left-2 text-2xl cursor-pointer ">
-          {definedTags.map((dt) => (
-            <Tooltip key={`photo-${photo.id}-tag-tooltip-${dt.tag}`}>
-              <TooltipTrigger asChild>
-                <i
-                  key={`photo-${photo.id}-tag-${dt.tag}`}
-                  className={`${
-                    tagsArray.includes(dt.tag) ? "ph-fill" : "ph-duotone"
-                  } ${
-                    dt.icon
-                  } cursor-pointer bg-white bg-opacity-30 rounded-md`}
-                  onClick={() => tagClicked(dt)}
-                />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  {dt.label}{" "}
-                  {tagsArray.includes(dt.tag) ? "(selected)" : "(not selected)"}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          ))}
+
+      {/* Applied-tag chips — always visible top-left */}
+      {appliedTags.length > 0 && (
+        <div className="absolute top-1.5 left-1.5 flex gap-1 z-10 pointer-events-none">
+          {appliedTags.map((dt) => {
+            const IconComp = TAG_ICON_MAP[dt.tag]
+            return (
+              <span
+                key={dt.tag}
+                title={dt.label}
+                className="grid place-items-center rounded-full bg-white/85 text-neutral-800 backdrop-blur shadow-[0_1px_2px_rgba(0,0,0,.15)]"
+                style={{ width: chipSize, height: chipSize }}
+              >
+                {IconComp && (
+                  <IconComp size={iconSize} strokeWidth={2} />
+                )}
+              </span>
+            )
+          })}
         </div>
-      )}
-      {showDate && (
-        <div className="absolute bottom-2 left-2 bg-slate-400 bg-opacity-50 text-xs font-extralight p-[1px] rounded-md">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div>{format(date, "yyyy/MM/dd")}</div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{format(date, "yyyy/MM/dd HH:mm:ss")}</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      )}
-      {showActions && (
-        <i
-          className={`ph-duotone ${popupIcon} text-2xl absolute top-2 right-2 cursor-pointer bg-white bg-opacity-30 rounded-md`}
-          onClick={() => openInTab()}
-        />
-      )}
-      {showActions && onNavigation && (
-        <i
-          className={`ph-duotone ${navigateIcon} text-2xl absolute right-2 bottom-2 cursor-pointer bg-white bg-opacity-30 rounded-md`}
-          onClick={() => navigate()}
-        />
       )}
 
+      {/* Click overlay — opens lightbox */}
+      <button
+        onClick={() => onOpen?.(photo)}
+        className="absolute inset-0 z-0 cursor-default"
+        aria-label="Open photo"
+      />
+
+      {/* Hover toolbar — tag toggles + date */}
+      <div className="absolute inset-x-0 bottom-0 pt-8 pb-1.5 px-1.5 bg-gradient-to-t from-black/65 via-black/25 to-transparent opacity-0 group-hover:opacity-100 transition z-10 flex items-end justify-between">
+        <div className="flex gap-0.5">
+          {definedTags.map((dt) => {
+            const on = tagsArray.includes(dt.tag)
+            const IconComp = TAG_ICON_MAP[dt.tag]
+            return (
+              <button
+                key={dt.tag}
+                title={dt.label}
+                onClick={(e) => tagClicked(e, dt.tag)}
+                className={
+                  "grid place-items-center rounded-full transition " +
+                  (on
+                    ? "bg-white text-neutral-900"
+                    : "bg-black/40 text-white/85 hover:bg-white/25 hover:text-white")
+                }
+                style={{ width: chipSize, height: chipSize }}
+              >
+                {IconComp && <IconComp size={iconSize} strokeWidth={2} />}
+              </button>
+            )
+          })}
+        </div>
+        <span
+          className="font-medium tracking-tight text-white/90 leading-none"
+          style={{ fontSize: dense ? 9 : 10.5 }}
+        >
+          {format(date, "yyyy/MM/dd")}
+        </span>
+      </div>
+
+      {/* Shift+hover zoom preview */}
       {showZoom &&
         createPortal(
           <div
@@ -237,13 +244,14 @@ export function Photo({
               src={`${baseUrl}/photos/full/${photo.id}`}
               style={{
                 position: "absolute",
-                width: photo.thumbnailWidth * scale * zoomLevel,
-                height: photo.thumbnailHeight * scale * zoomLevel,
+                width: renderWidth * zoomLevel,
+                height: renderHeight * zoomLevel,
                 left: imgLeft,
                 top: imgTop,
                 maxWidth: "none",
                 maxHeight: "none",
               }}
+              alt=""
             />
             <div
               style={{
@@ -261,7 +269,7 @@ export function Photo({
               {zoomLevel.toFixed(1)}×
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </div>
   )

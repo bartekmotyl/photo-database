@@ -1,98 +1,51 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import "./App.css"
 import { useAsync, useLocalStorage } from "react-use"
-import { Slider } from "./components/ui/slider"
 import * as lodash from "lodash"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationPrevious,
-  PaginationLink,
-  PaginationNext,
-} from "./components/ui/pagination"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./components/ui/select"
-import { baseUrl, definedTags, PhotoRecord } from "."
-import { Photo } from "./Photo"
+import { baseUrl, PhotoRecord, parseTags } from "."
 import { PhotoSheet } from "./PhotoSheet"
-import { Label } from "./components/ui/label"
-import { Card, CardContent } from "./components/ui/card"
-import { Button } from "./components/ui/button"
+import { Header } from "./components/Header"
+import { SubBar } from "./components/SubBar"
+import { JustifiedGrid } from "./components/JustifiedGrid"
+import { PaginationStrip } from "./components/PaginationStrip"
+
+type SortOrder = "newest" | "oldest" | "random"
+
+const ROW_HEIGHT_MAP: Record<number, number> = {
+  2: 110,
+  3: 140,
+  4: 175,
+  5: 210,
+  6: 250,
+  7: 300,
+  8: 360,
+  9: 480,
+  10: 640,
+  11: 860,
+}
 
 function App() {
-  console.log(`baseUrl: ${baseUrl}`)
   const [photos, setPhotos] = useState<PhotoRecord[]>([])
-  const photosState = useAsync(async () => {
+
+  useAsync(async () => {
     const response = await fetch(`${baseUrl}/photos/all`)
     const result = (await response.json()) as PhotoRecord[]
     const sorted = lodash.sortBy(result, (r) => r.referenceDate)
-    console.log("setting photos from async call")
     setPhotos(sorted)
     return sorted
   }, [])
-  const defaultScale = 1.0
-  const [scaleSaved, setScaleSaved] = useLocalStorage("scale", defaultScale)
-  const scale = scaleSaved ?? defaultScale
-  const pageSizes = [10, 50, 100, 200, 500, 1000]
-  const defaultPageSize = 100
-  const [pageSizeSaved, setPageSizeSaved] = useLocalStorage(
-    "pageSize",
-    defaultPageSize,
-  )
-  const pageSize = pageSizeSaved ?? defaultPageSize
-  const [currentPageIndex, setCurrentPageIndex] = useState(0)
 
+  const [scaleSaved, setScaleSaved] = useLocalStorage<number>("scale-v2", 5)
+  const scale = scaleSaved ?? 5
+
+  const [pageSizeSaved] = useLocalStorage<number>("pageSize", 100)
+  const pageSize = pageSizeSaved ?? 100
+
+  const [currentPage, setCurrentPage] = useState(1)
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
-  const [selectedTag, setSelectedTag] = useState<string | null>(null)
-  const [photoToNavigate, setPhotoToNavigate] = useState<
-    PhotoRecord | undefined
-  >()
-  const [hideNavBar, setHideNavBar] = useState<boolean | undefined>(undefined)
-
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const navBarRef = useRef<HTMLDivElement>(null)
-
-  const handleScroll = () => {
-    if (!scrollRef.current) {
-      return
-    }
-    if (
-      hideNavBar == undefined &&
-      scrollRef.current?.scrollTop > (navBarRef.current?.clientHeight ?? 0)
-    ) {
-      setHideNavBar(true)
-    }
-  }
-  useEffect(() => {
-    const element = scrollRef.current
-    element?.addEventListener("scroll", handleScroll)
-
-    return () => element?.removeEventListener("scroll", handleScroll)
-  })
-
-  const onPhotoUpdated = (updatedPhoto: PhotoRecord) => {
-    console.log(`onPhotoUpdated: ${updatedPhoto.id}`)
-    const newPhotos = photos.map((p) => {
-      if (p.id === updatedPhoto.id) {
-        return updatedPhoto
-      } else {
-        return p
-      }
-    })
-    setPhotos(newPhotos)
-  }
-  const onPhotoNavigation = (photo: PhotoRecord) => {
-    setPhotoToNavigate(photo)
-  }
-  const navigateToPage = (pageIndex: number) => {
-    setCurrentPageIndex(pageIndex)
-  }
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [sort, setSort] = useState<SortOrder>("newest")
+  const [lightboxPhoto, setLightboxPhoto] = useState<PhotoRecord | undefined>()
 
   const allMonths = lodash.sortBy(
     lodash.uniq(photos.map((p) => p.referenceDate.substring(0, 7))),
@@ -106,246 +59,106 @@ function App() {
       p.referenceDate.startsWith(selectedMonth),
     )
   }
-  if (selectedTag) {
-    filteredPhotos = filteredPhotos.filter((p) => p.tags.includes(selectedTag))
+
+  if (selectedTags.length > 0) {
+    filteredPhotos = filteredPhotos.filter((p) => {
+      const tags = parseTags(p.tags)
+      return selectedTags.some((t) => tags.includes(t))
+    })
   }
 
-  const numPages = Math.ceil(filteredPhotos.length / pageSize)
-  // const pagesNavStart = Math.max(currentPageIndex - 5, 0)
-  // const pagesNavEnd = Math.min(currentPageIndex + 5, numPages)
-  const pagesNavStartIndex = Math.max(currentPageIndex, 0)
-  const pagesNavEndIndex = Math.min(currentPageIndex - 1, numPages)
+  if (sort === "oldest") {
+    filteredPhotos = lodash.sortBy(filteredPhotos, (p) => p.referenceDate)
+  } else if (sort === "newest") {
+    filteredPhotos = lodash.sortBy(
+      filteredPhotos,
+      (p) => p.referenceDate,
+    ).reverse()
+  } else if (sort === "random") {
+    filteredPhotos = lodash.shuffle(filteredPhotos)
+  }
+
+  const numPages = Math.max(1, Math.ceil(filteredPhotos.length / pageSize))
 
   const photosOnPage = filteredPhotos.slice(
-    currentPageIndex * pageSize,
-    (currentPageIndex + 1) * pageSize,
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
   )
 
-  if (photosOnPage.length === 0 && currentPageIndex > 0) {
-    setCurrentPageIndex(0)
-  }
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedMonth, selectedTags.join(","), sort])
 
-  useEffect(
-    () => window.scrollTo({ top: 0, behavior: "smooth" }),
-    [pageSizeSaved, currentPageIndex, selectedTag, selectedMonth, scaleSaved],
-  )
+  // Clamp page if filtered result shrinks
+  useEffect(() => {
+    if (currentPage > numPages) setCurrentPage(numPages)
+  }, [numPages, currentPage])
 
-  const MonthSelector = () => (
-    <Select
-      defaultValue={selectedMonth ?? undefined}
-      onValueChange={(value) =>
-        setSelectedMonth(value !== "_none_" ? value : null)
-      }
-    >
-      <SelectTrigger>
-        <SelectValue placeholder="Month" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={"_none_"} key={`select-month-none`} className="">
-          All
-        </SelectItem>
-        {allMonths.map((month) => (
-          <SelectItem value={`${month}`} key={`select-month-${month}`}>
-            {month}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  )
+  // Scroll to top on page change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [currentPage])
 
-  const Paginator = () => (
-    <Pagination>
-      <PaginationContent>
-        {currentPageIndex > 0 && (
-          <PaginationItem>
-            <PaginationPrevious
-              href="#"
-              onClick={() => navigateToPage(currentPageIndex - 1)}
-            />
-          </PaginationItem>
-        )}
-        {lodash.range(pagesNavStartIndex, pagesNavEndIndex).map((pageIndex) => (
-          <PaginationItem key={`pagination-item-${pageIndex}`}>
-            <PaginationLink
-              href="#"
-              isActive={pageIndex === currentPageIndex}
-              onClick={() => navigateToPage(pageIndex)}
-            >
-              {pageIndex + 1}
-            </PaginationLink>
-          </PaginationItem>
-        ))}
-        {currentPageIndex < numPages - 1 && (
-          <PaginationItem>
-            <PaginationNext
-              href="#"
-              onClick={() => navigateToPage(currentPageIndex + 1)}
-            />
-          </PaginationItem>
-        )}
-      </PaginationContent>
-    </Pagination>
-  )
-
-  const PageSizeSelector = () => {
-    return (
-      // <ToggleGroup
-      //   type="single"
-      //   size="sm"
-      //   value={pageSize.toString()}
-      //   onValueChange={(value) => setPageSizeSaved(lodash.toInteger(value))}
-      //   className=""
-      // >
-      //   {pageSizes.map((size) => (
-      //     <ToggleGroupItem
-      //       value={`${size}`}
-      //       key={`page-size-${size}`}
-      //       aria-label="Toggle bold"
-      //     >
-      //       {size}
-      //     </ToggleGroupItem>
-      //   ))}
-      // </ToggleGroup>
-
-      <Select
-        defaultValue={pageSize.toString()}
-        onValueChange={(value) => setPageSizeSaved(lodash.toInteger(value))}
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Page size" />
-        </SelectTrigger>
-        <SelectContent>
-          {pageSizes.map((size) => (
-            <SelectItem value={`${size}`} key={`page-size-${size}`}>
-              {size}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+  const onPhotoUpdated = (updatedPhoto: PhotoRecord) => {
+    setPhotos((prev) =>
+      prev.map((p) => (p.id === updatedPhoto.id ? updatedPhoto : p)),
+    )
+    // If the updated photo is the one in the lightbox, update it too
+    setLightboxPhoto((prev) =>
+      prev?.id === updatedPhoto.id ? updatedPhoto : prev,
     )
   }
 
-  const TagFilter = () => (
-    <Select
-      defaultValue={selectedTag ?? undefined}
-      onValueChange={(value) =>
-        setSelectedTag(value !== "_none_" ? value : null)
-      }
-    >
-      <SelectTrigger className="">
-        <SelectValue placeholder="Tag" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={"_none_"} key={`select-tag-none`}>
-          All
-        </SelectItem>
-        {definedTags.map((tag) => (
-          <SelectItem value={`${tag.tag}`} key={`select-tag-${tag.tag}`}>
-            {tag.label} ({tag.tag})
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  )
+  const targetRowHeight = ROW_HEIGHT_MAP[scale] ?? 210
 
-  const NavBarSwitch = () => {
-    return (
-      <div className="border-2 border-slate-400  bg-slate-300 opacity-50 absolute top-0 right-0 z-[60] p-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setHideNavBar((hideNavBar) => !hideNavBar)}
-        >
-          <i
-            className={`ph ${
-              hideNavBar
-                ? "ph-arrow-square-down-left"
-                : "ph-arrow-square-up-right"
-            } text-4xl`}
-          ></i>
-        </Button>
-      </div>
-    )
-  }
   return (
-    <div className="w-full h-lvh overflow-auto scroll-smooth" ref={scrollRef}>
-      <NavBarSwitch />
-      {!hideNavBar && (
-        <nav className="sticky top-0 z-50 p-2" ref={navBarRef}>
-          <Card className="w-full">
-            <CardContent className="pb-0">
-              <div className="grid grid-cols-[minmax(0,_150px)_minmax(0,_300px)] gap-1 py-2 items-center place-items-start">
-                <Label htmlFor="name" className="">
-                  Page size
-                </Label>
-                <PageSizeSelector />
-                <Label htmlFor="name" className="">
-                  Month
-                </Label>
-                <MonthSelector />
-                <Label htmlFor="name" className="">
-                  Tag
-                </Label>
-                <TagFilter />
-                <div className="flex flex-row gap-2 w-full col-span-2 items-center">
-                  <div>Scale</div>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => scale > 0.2 && setScaleSaved(scale - 0.1)}
-                  >
-                    -
-                  </Button>
-                  <Slider
-                    className=""
-                    value={[scale]}
-                    min={0.2}
-                    max={1.5}
-                    step={0.1}
-                    onValueChange={(v) => setScaleSaved(v[0])}
-                  />
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => scale < 1.5 && setScaleSaved(scale + 0.1)}
-                  >
-                    +
-                  </Button>
-                </div>
-                <div className="col-span-2">
-                  {filteredPhotos.length} photos, {numPages} page(s)
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </nav>
-      )}
-      <main className="flex flex-row flex-wrap gap-4 justify-center p-2">
-        <Paginator />
-        {photosState.loading ? (
-          <div>Loading...</div>
-        ) : photosState.error ? (
-          <div>Error: {photosState.error.message}</div>
+    <div className="min-h-screen bg-[#fafaf7]">
+      <Header
+        scale={scale}
+        onScale={setScaleSaved}
+        allMonths={allMonths}
+        selectedMonth={selectedMonth}
+        onMonthChange={(m) => setSelectedMonth(m)}
+        selectedTags={selectedTags}
+        onTagsChange={setSelectedTags}
+        sort={sort}
+        onSortChange={setSort}
+      />
+
+      <SubBar
+        total={filteredPhotos.length}
+        page={currentPage}
+        pages={numPages}
+      />
+
+      <main className="px-5 pt-4 pb-2">
+        {photosOnPage.length === 0 ? (
+          <div className="flex items-center justify-center h-64 text-neutral-400 text-[13px]">
+            No photos match the current filters.
+          </div>
         ) : (
-          photosOnPage.map((photo) => (
-            <Photo
-              key={photo.id}
-              photo={photo}
-              scale={scale}
-              onPhotoUpdated={onPhotoUpdated}
-              onNavigation={onPhotoNavigation}
-            />
-          ))
+          <JustifiedGrid
+            photos={photosOnPage}
+            targetHeight={targetRowHeight}
+            gap={6}
+            onOpen={setLightboxPhoto}
+            onPhotoUpdated={onPhotoUpdated}
+          />
         )}
-        <Paginator />
       </main>
 
+      <PaginationStrip
+        page={currentPage}
+        pages={numPages}
+        onPage={setCurrentPage}
+      />
+
       <PhotoSheet
-        photos={photos}
-        selectedPhoto={photoToNavigate}
-        onClose={() => {
-          setPhotoToNavigate(undefined)
-        }}
+        photos={filteredPhotos}
+        selectedPhoto={lightboxPhoto}
+        onClose={() => setLightboxPhoto(undefined)}
+        onNavigate={setLightboxPhoto}
         onPhotoUpdated={onPhotoUpdated}
       />
     </div>

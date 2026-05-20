@@ -404,3 +404,4 @@ backend/PhotoDatabase/PhotoDatabaseIndexer/appsettings-local.json
 backend/PhotoDatabase/PhotoDatabaseIndexer/config/appsettings-local.json
 backend/PhotoDatabase/.idea
 local
+frontend/photo-database-web/.claude
