@@ -10,6 +10,7 @@ import { JustifiedGrid } from "./components/JustifiedGrid"
 import { PaginationStrip } from "./components/PaginationStrip"
 
 type SortOrder = "newest" | "oldest" | "random"
+type TagMatchMode = "all" | "any"
 
 const ROW_HEIGHT_MAP: Record<number, number> = {
   2: 110,
@@ -44,6 +45,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [tagMatchMode, setTagMatchMode] = useState<TagMatchMode>("all")
   const [sort, setSort] = useState<SortOrder>("newest")
   const [lightboxPhoto, setLightboxPhoto] = useState<PhotoRecord | undefined>()
 
@@ -63,7 +65,9 @@ function App() {
   if (selectedTags.length > 0) {
     filteredPhotos = filteredPhotos.filter((p) => {
       const tags = parseTags(p.tags)
-      return selectedTags.some((t) => tags.includes(t))
+      return tagMatchMode === "all"
+        ? selectedTags.every((t) => tags.includes(t))
+        : selectedTags.some((t) => tags.includes(t))
     })
   }
 
@@ -88,7 +92,7 @@ function App() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [selectedMonth, selectedTags.join(","), sort])
+  }, [selectedMonth, selectedTags.join(","), tagMatchMode, sort])
 
   // Clamp page if filtered result shrinks
   useEffect(() => {
@@ -122,6 +126,8 @@ function App() {
         onMonthChange={(m) => setSelectedMonth(m)}
         selectedTags={selectedTags}
         onTagsChange={setSelectedTags}
+        tagMatchMode={tagMatchMode}
+        onTagMatchModeChange={setTagMatchMode}
         sort={sort}
         onSortChange={setSort}
       />

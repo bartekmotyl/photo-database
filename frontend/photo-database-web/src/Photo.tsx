@@ -1,23 +1,7 @@
 import { format, parseISO } from "date-fns"
-import { baseUrl, definedTags, parseTags, PhotoRecord } from "."
-import {
-  Flame,
-  Heart,
-  User,
-  Users,
-  UsersRound,
-  type LucideIcon,
-} from "lucide-react"
+import { baseUrl, definedTags, parseTags, PhotoRecord, TAG_ICON_MAP } from "."
 import { useState, useEffect, useRef } from "react"
 import { createPortal } from "react-dom"
-
-const TAG_ICON_MAP: Record<string, LucideIcon> = {
-  fav: Heart,
-  hot: Flame,
-  single: User,
-  pair: Users,
-  family: UsersRound,
-}
 
 const ZOOM_PREVIEW_WIDTH = 420
 const ZOOM_PREVIEW_HEIGHT = 320

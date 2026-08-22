@@ -1,28 +1,14 @@
 import { useEffect, useRef } from "react"
 import { format, parseISO } from "date-fns"
 import { createPortal } from "react-dom"
-import { PhotoRecord, baseUrl, definedTags, parseTags } from "."
+import { PhotoRecord, baseUrl, definedTags, parseTags, TAG_ICON_MAP } from "."
 import {
   X,
   ChevronLeft,
   ChevronRight,
-  Flame,
-  Heart,
-  User,
-  Users,
-  UsersRound,
   Info,
   MoreHorizontal,
-  type LucideIcon,
 } from "lucide-react"
-
-const TAG_ICON_MAP: Record<string, LucideIcon> = {
-  fav: Heart,
-  hot: Flame,
-  single: User,
-  pair: Users,
-  family: UsersRound,
-}
 
 export type PhotoSheetProps = {
   photos: PhotoRecord[]
@@ -40,6 +26,7 @@ export function PhotoSheet({
   onNavigate,
 }: PhotoSheetProps) {
   const filmRef = useRef<HTMLDivElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
 
   const currentIndex = photos.findIndex((p) => p.id === selectedPhoto?.id)
 
@@ -70,6 +57,30 @@ export function PhotoSheet({
     window.addEventListener("keydown", handleKey)
     return () => window.removeEventListener("keydown", handleKey)
   }, [selectedPhoto, currentIndex, photos, onClose, onNavigate])
+
+  // Prevent the page behind the lightbox from scrolling
+  useEffect(() => {
+    if (!selectedPhoto) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [selectedPhoto])
+
+  // Route mouse wheel input to the film strip instead of letting it
+  // fall through to the page behind. React's onWheel is passive by
+  // default, so preventDefault must happen via a native listener.
+  useEffect(() => {
+    if (!selectedPhoto || !rootRef.current) return
+    const el = rootRef.current
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      filmRef.current?.scrollBy({ left: e.deltaY + e.deltaX })
+    }
+    el.addEventListener("wheel", handleWheel, { passive: false })
+    return () => el.removeEventListener("wheel", handleWheel)
+  }, [selectedPhoto])
 
   // Scroll film strip to keep active thumb in view
   useEffect(() => {
@@ -105,6 +116,7 @@ export function PhotoSheet({
 
   const lightbox = (
     <div
+      ref={rootRef}
       className="fixed inset-0 z-50 bg-neutral-950 text-white/90 flex flex-col"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >

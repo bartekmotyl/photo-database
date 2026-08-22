@@ -3,27 +3,14 @@ import { format, parse } from "date-fns"
 import {
   Calendar,
   ChevronDown,
-  Flame,
   Heart,
   Layers,
   Minus,
   Plus,
   ArrowUpDown,
-  User,
-  Users,
-  UsersRound,
-  type LucideIcon,
 } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
-import { definedTags } from "../index"
-
-const TAG_ICON_MAP: Record<string, LucideIcon> = {
-  fav: Heart,
-  hot: Flame,
-  single: User,
-  pair: Users,
-  family: UsersRound,
-}
+import { definedTags, TAG_ICON_MAP } from "../index"
 
 type HeaderProps = {
   scale: number
@@ -33,6 +20,8 @@ type HeaderProps = {
   onMonthChange: (month: string | null) => void
   selectedTags: string[]
   onTagsChange: (tags: string[]) => void
+  tagMatchMode: "all" | "any"
+  onTagMatchModeChange: (mode: "all" | "any") => void
   sort: "newest" | "oldest" | "random"
   onSortChange: (sort: "newest" | "oldest" | "random") => void
 }
@@ -101,6 +90,8 @@ export function Header({
   onMonthChange,
   selectedTags,
   onTagsChange,
+  tagMatchMode,
+  onTagMatchModeChange,
   sort,
   onSortChange,
 }: HeaderProps) {
@@ -195,6 +186,22 @@ export function Header({
               </span>
             </PopoverTrigger>
             <PopoverContent className="w-44 p-1" align="start">
+              <div className="flex items-center gap-0.5 p-0.5 mb-1 bg-neutral-100 rounded-md">
+                {(["all", "any"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => onTagMatchModeChange(mode)}
+                    className={
+                      "flex-1 px-2 py-1 text-[11.5px] font-medium rounded transition " +
+                      (tagMatchMode === mode
+                        ? "bg-white text-neutral-900 shadow-sm"
+                        : "text-neutral-500 hover:text-neutral-700")
+                    }
+                  >
+                    {mode === "all" ? "All tags" : "Any tag"}
+                  </button>
+                ))}
+              </div>
               {definedTags.map((dt) => {
                 const IconComp = TAG_ICON_MAP[dt.tag]
                 const on = selectedTags.includes(dt.tag)
