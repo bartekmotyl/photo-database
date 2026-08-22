@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useMemo } from "react"
+import { useRef, useState, useLayoutEffect, useMemo } from "react"
 import { photoRatio, PhotoRecord } from "../index"
 import { Photo } from "../Photo"
 
@@ -20,7 +20,9 @@ export function JustifiedGrid({
   const ref = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
 
-  useEffect(() => {
+  // useLayoutEffect so width is measured before the first browser paint —
+  // prevents the flash of empty boxes that useEffect would cause.
+  useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
     const ro = new ResizeObserver((entries) => {
@@ -86,7 +88,10 @@ export function JustifiedGrid({
       {rows.map((row, i) => (
         <div key={i} className="flex" style={{ gap, height: row.h }}>
           {row.items.map(({ photo, w, h }) => (
-            <div key={photo.id} style={{ width: w, height: h, flex: "0 0 auto" }}>
+            <div
+              key={photo.id}
+              style={{ width: w, height: h, flex: "0 0 auto" }}
+            >
               <Photo
                 photo={photo}
                 renderWidth={w}

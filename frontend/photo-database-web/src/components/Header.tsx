@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { format, parse } from "date-fns"
 import {
   Calendar,
@@ -113,6 +114,10 @@ export function Header({
   const sortLabel =
     sort === "newest" ? "Newest" : sort === "oldest" ? "Oldest" : "Random"
 
+  const [monthOpen, setMonthOpen] = useState(false)
+  const [tagOpen, setTagOpen] = useState(false)
+  const [sortOpen, setSortOpen] = useState(false)
+
   const toggleTag = (tag: string) => {
     onTagsChange(
       selectedTags.includes(tag)
@@ -137,7 +142,7 @@ export function Header({
         {/* Filter chips */}
         <div className="flex items-center gap-1.5">
           {/* Month chip */}
-          <Popover>
+          <Popover open={monthOpen} onOpenChange={setMonthOpen}>
             <PopoverTrigger asChild>
               <span>
                 <Chip
@@ -150,7 +155,7 @@ export function Header({
             </PopoverTrigger>
             <PopoverContent className="w-48 p-1 max-h-72 overflow-y-auto overscroll-contain" align="start">
               <button
-                onClick={() => onMonthChange(null)}
+                onClick={() => { onMonthChange(null); setMonthOpen(false) }}
                 className={
                   "w-full text-left px-3 py-1.5 text-[12.5px] rounded-md transition " +
                   (!selectedMonth
@@ -163,7 +168,7 @@ export function Header({
               {allMonths.map((m) => (
                 <button
                   key={m}
-                  onClick={() => onMonthChange(m)}
+                  onClick={() => { onMonthChange(m); setMonthOpen(false) }}
                   className={
                     "w-full text-left px-3 py-1.5 text-[12.5px] rounded-md transition " +
                     (selectedMonth === m
@@ -178,7 +183,7 @@ export function Header({
           </Popover>
 
           {/* Tag chip */}
-          <Popover>
+          <Popover open={tagOpen} onOpenChange={setTagOpen}>
             <PopoverTrigger asChild>
               <span>
                 <Chip
@@ -196,7 +201,7 @@ export function Header({
                 return (
                   <button
                     key={dt.tag}
-                    onClick={() => toggleTag(dt.tag)}
+                    onClick={() => { toggleTag(dt.tag); setTagOpen(false) }}
                     className={
                       "w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] rounded-md transition " +
                       (on
@@ -214,7 +219,7 @@ export function Header({
               })}
               <div className="my-1 border-t border-black/5" />
               <button
-                onClick={() => onTagsChange([])}
+                onClick={() => { onTagsChange([]); setTagOpen(false) }}
                 className="w-full text-left px-3 py-1.5 text-[12.5px] rounded-md text-neutral-500 hover:bg-neutral-100 transition"
               >
                 Clear filter
@@ -223,7 +228,7 @@ export function Header({
           </Popover>
 
           {/* Sort chip */}
-          <Popover>
+          <Popover open={sortOpen} onOpenChange={setSortOpen}>
             <PopoverTrigger asChild>
               <span>
                 <Chip leading={<ArrowUpDown size={13} />}>{sortLabel}</Chip>
@@ -233,7 +238,7 @@ export function Header({
               {(["newest", "oldest", "random"] as const).map((s) => (
                 <button
                   key={s}
-                  onClick={() => onSortChange(s)}
+                  onClick={() => { onSortChange(s); setSortOpen(false) }}
                   className={
                     "w-full text-left px-3 py-1.5 text-[12.5px] rounded-md transition capitalize " +
                     (sort === s

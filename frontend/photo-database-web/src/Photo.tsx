@@ -155,7 +155,6 @@ export function Photo({
       <img
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
         key={photo.id}
-        loading="lazy"
         src={`${baseUrl}/photos/thumbnail/${photo.id}`}
         draggable={false}
         alt=""

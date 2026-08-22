@@ -43,6 +43,17 @@ export function PhotoSheet({
 
   const currentIndex = photos.findIndex((p) => p.id === selectedPhoto?.id)
 
+  // Only render a window of neighbours around the current photo in the film
+  // strip — rendering (and fetching thumbnails for) the entire photo list
+  // makes opening the popup very slow when the library is large.
+  const FILM_STRIP_RADIUS = 20
+  const filmStripStart =
+    currentIndex < 0 ? 0 : Math.max(0, currentIndex - FILM_STRIP_RADIUS)
+  const filmStripPhotos =
+    currentIndex < 0
+      ? []
+      : photos.slice(filmStripStart, currentIndex + FILM_STRIP_RADIUS + 1)
+
   useEffect(() => {
     if (!selectedPhoto) return
     const handleKey = (e: KeyboardEvent) => {
@@ -63,9 +74,10 @@ export function PhotoSheet({
   // Scroll film strip to keep active thumb in view
   useEffect(() => {
     if (!filmRef.current || currentIndex < 0) return
-    const thumb = filmRef.current.children[currentIndex] as HTMLElement | undefined
+    const relativeIndex = currentIndex - filmStripStart
+    const thumb = filmRef.current.children[relativeIndex] as HTMLElement | undefined
     thumb?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
-  }, [currentIndex])
+  }, [currentIndex, filmStripStart])
 
   if (!selectedPhoto) return null
 
@@ -185,7 +197,7 @@ export function PhotoSheet({
         ref={filmRef}
         className="h-20 flex items-center gap-1.5 px-4 overflow-x-auto shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {photos.map((p) => (
+        {filmStripPhotos.map((p) => (
           <button
             key={p.id}
             onClick={() => onNavigate(p)}
