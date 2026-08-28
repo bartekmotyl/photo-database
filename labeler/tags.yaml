@@ -1,0 +1,38 @@
+# Predefined tags the model may assign. Each tag has a short description
+# that is included in the prompt - keep descriptions specific, it noticeably
+# improves accuracy. Tag names must not contain commas (PhotoDB stores tags
+# as a comma-separated list).
+
+tags:
+  - name: people
+    description: One or more people are a clear subject of the photo (not just tiny figures in the background).
+  - name: portrait
+    description: A close-up of one person's face or upper body.
+  - name: group
+    description: Three or more people posing or gathered together.
+  - name: kids
+    description: Children are clearly visible in the photo.
+  - name: landscape
+    description: Scenery is the main subject - mountains, fields, sea, forest, sky.
+  - name: city
+    description: Urban environment - streets, buildings, squares, city skyline.
+  - name: architecture
+    description: A building or structure is the main subject (church, castle, bridge, monument).
+  - name: nature
+    description: Plants, trees, flowers, or wild scenery are prominent.
+  - name: animals
+    description: An animal is clearly visible (pet or wild).
+  - name: food
+    description: Food or drink is the main subject of the photo.
+  - name: beach
+    description: Beach, seaside or lakeside swimming scene.
+  - name: winter
+    description: Snow, ice or clearly wintry conditions.
+  - name: night
+    description: Taken at night or in very low light.
+  - name: indoor
+    description: Taken inside a building or vehicle.
+  - name: event
+    description: A celebration or organized event - birthday, wedding, concert, sports game.
+  - name: document
+    description: A photo of a document, screen, whiteboard or other text-only content (not a real scene).

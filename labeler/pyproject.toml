@@ -1,0 +1,32 @@
+[project]
+name = "photo-labeler"
+version = "0.1.0"
+description = "AI labeling tool for PhotoDB - describes photos and assigns tags using a vision LLM"
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=1.0",
+    "openai>=1.50",
+    "requests>=2.31",
+    "PyYAML>=6.0",
+]
+
+[project.scripts]
+photo-labeler = "photo_labeler.main:main"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.13",
+    "types-PyYAML",
+    "types-requests",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["photo_labeler*"]
+
+[tool.mypy]
+strict = true
+files = ["photo_labeler"]

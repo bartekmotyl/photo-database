@@ -28,10 +28,10 @@ namespace PhotoDatabaseWebApi.Controllers
         }
         
         [HttpGet]
-        public IEnumerable<PhotoRecord> All()
+        public IEnumerable<PhotoRecord> All([FromQuery(Name = "extended")] bool extended = false)
         {
             using var db = GetConnection();
-            var result = db.Table<PhotoInfo>().Select(PhotoRecord.CreateFromPhotoInfo).ToList();
+            var result = db.Table<PhotoInfo>().Select(pi => PhotoRecord.CreateFromPhotoInfo(pi, extended)).ToList();
             db.Close();
             return result;
         }
@@ -95,11 +95,53 @@ namespace PhotoDatabaseWebApi.Controllers
             return Ok();
         }
 
+        [HttpGet("{id}")]
+        public IActionResult Single(int id)
+        {
+            using var db = GetConnection();
+            var pi = db.Find<PhotoInfo>(id);
+            if (pi == null)
+            {
+                return NotFound();
+            }
+            return Ok(PhotoRecord.CreateFromPhotoInfo(pi, extended: true));
+        }
+
+        [HttpPatch]
+        public IActionResult UpdateDescriptions([FromBody] PhotoDescriptionUpdate[] updates)
+        {
+            using var db = GetConnection();
+            db.BeginTransaction();
+            try
+            {
+                foreach (var entry in updates)
+                {
+                    var photo = db.Table<PhotoInfo>().FirstOrDefault(p => p.Id == entry.PhotoId);
+                    if (photo == null)
+                        return NotFound();
+
+                    photo.ContentDescription = entry.ContentDescription;
+                    db.Update(photo);
+                }
+                db.Commit();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"error when trying to update descriptions");
+            }
+            finally
+            {
+                db.Close();
+            }
+            return Ok();
+        }
+
         [HttpGet]
         public IEnumerable<PhotoRecord> Search(
             [FromQuery(Name = "dateFrom")] string dateFromStr = "",
             [FromQuery(Name = "dateTo")] string dateToStr = "",
-            [FromQuery(Name = "tags")] string tags= ""
+            [FromQuery(Name = "tags")] string tags= "",
+            [FromQuery(Name = "extended")] bool extended = false
             )
         {
             var dateFrom = ParseDateParam(dateFromStr);
@@ -126,7 +168,7 @@ namespace PhotoDatabaseWebApi.Controllers
                 }
 
             }
-            return result.Select(PhotoRecord.CreateFromPhotoInfo).ToList();
+            return result.Select(pi => PhotoRecord.CreateFromPhotoInfo(pi, extended)).ToList();
         }
 
 

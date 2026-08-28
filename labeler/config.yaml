@@ -1,0 +1,30 @@
+# PhotoDB AI labeler configuration.
+# API keys are never stored here - set ANTHROPIC_API_KEY / OPENAI_API_KEY
+# in the environment instead. Ollama needs no key.
+
+api:
+  # PhotoDB Web API base URL
+  base_url: http://localhost:5284
+
+provider:
+  # anthropic | openai | ollama
+  type: anthropic
+  model: claude-opus-5
+  # Only used by ollama (e.g. http://localhost:11434); ignored by other providers.
+  # base_url: http://localhost:11434
+
+# The free-form part of the prompt sent together with each photo.
+# The instructions describing the expected JSON output are fixed in code.
+prompt_file: prompt.md
+
+# Predefined tags the model may choose from (name + short description each).
+tags_file: tags.yaml
+
+labeling:
+  # Photos are processed ordered by referenceDate, then id.
+  # Photos that already have a content description are skipped
+  # (override with --relabel).
+  skip_labelled: true
+  # Maximum number of photos to process in one run; 0 = no limit.
+  # Handy for cheap experiments with big models (also see --limit).
+  limit: 0
