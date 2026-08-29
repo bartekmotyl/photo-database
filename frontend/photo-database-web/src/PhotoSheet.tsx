@@ -117,7 +117,11 @@ export function PhotoSheet({
 
   if (!selectedPhoto) return null
 
-  const tagsArray = parseTags(selectedPhoto.tags)
+  // Prefer the freshly fetched record's tags - the list records come from
+  // the initial load and can be stale (e.g. while a labeling job is running).
+  const tagsArray = parseTags(
+    details?.id === selectedPhoto.id ? details.tags : selectedPhoto.tags,
+  )
   const date = parseISO(selectedPhoto.referenceDate)
 
   const tagClicked = async (tag: string) => {
