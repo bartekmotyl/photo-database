@@ -28,8 +28,9 @@ const ROW_HEIGHT_MAP: Record<number, number> = {
 function App() {
   const [photos, setPhotos] = useState<PhotoRecord[]>([])
 
-  useAsync(async () => {
+  const loadState = useAsync(async () => {
     const response = await fetch(`${baseUrl}/photos/all`)
+    if (!response.ok) throw new Error(`API returned ${response.status}`)
     const result = (await response.json()) as PhotoRecord[]
     const sorted = lodash.sortBy(result, (r) => r.referenceDate)
     setPhotos(sorted)
@@ -144,10 +145,20 @@ function App() {
         total={filteredPhotos.length}
         page={currentPage}
         pages={numPages}
+        loading={loadState.loading}
       />
 
       <main className="px-5 pt-4 pb-2">
-        {photosOnPage.length === 0 ? (
+        {loadState.loading ? (
+          <div className="flex flex-col items-center justify-center gap-3 h-64 text-neutral-400 text-[13px]">
+            <span className="w-6 h-6 rounded-full border-2 border-neutral-300 border-t-neutral-600 animate-spin" />
+            Loading photos…
+          </div>
+        ) : loadState.error ? (
+          <div className="flex items-center justify-center h-64 text-red-400 text-[13px]">
+            Failed to load photos: {loadState.error.message}
+          </div>
+        ) : photosOnPage.length === 0 ? (
           <div className="flex items-center justify-center h-64 text-neutral-400 text-[13px]">
             No photos match the current filters.
           </div>
