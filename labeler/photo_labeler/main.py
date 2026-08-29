@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +11,19 @@ from .config import load_config
 from .models import ImageInput, LabelingError
 from .prompting import build_output_schema, build_prompt, parse_label_result
 from .providers import create_provider
+
+
+def date_arg(value: str) -> str:
+    """Validate a yyyy-mm-dd argument. The API silently ignores unparseable
+    date params (e.g. 2021-02-31), which would make the run process far more
+    photos than intended - so fail fast here instead."""
+    if value == "":
+        return value
+    try:
+        date.fromisoformat(value)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(f"not a valid date (expected yyyy-mm-dd): {value!r}") from e
+    return value
 
 
 def main() -> int:
@@ -22,8 +36,8 @@ def main() -> int:
         default=Path(__file__).resolve().parent.parent / "config.yaml",
         help="path to config.yaml (prompt/tags files are resolved relative to it)",
     )
-    parser.add_argument("--date-from", default="", help="only photos taken on/after this date (yyyy-mm-dd)")
-    parser.add_argument("--date-to", default="", help="only photos taken on/before this date (yyyy-mm-dd)")
+    parser.add_argument("--date-from", type=date_arg, default="", help="only photos taken on/after this date (yyyy-mm-dd)")
+    parser.add_argument("--date-to", type=date_arg, default="", help="only photos taken on/before this date (yyyy-mm-dd)")
     parser.add_argument("--limit", type=int, default=None, help="max photos to process (overrides config)")
     parser.add_argument("--relabel", action="store_true", help="also process photos already marked as labelled")
     parser.add_argument("--dry-run", action="store_true", help="query the model but do not write back to the database")
