@@ -23,6 +23,18 @@ export type PhotoRecord = {
   tags: string // comma-separated tag ids
 }
 
+// Returned by /photos/single/{id} (and All/Search with extended=true)
+export type PhotoRecordExtended = PhotoRecord & {
+  contentDescription: string
+  people: string
+  locationDescription: string
+  exifDate: string | null
+  exifMake: string | null
+  exifModel: string | null
+  exifLongitude: number | null
+  exifLatitude: number | null
+}
+
 export type TagEntry = {
   tag: string
   label: string

@@ -1,7 +1,14 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { format, parseISO } from "date-fns"
 import { createPortal } from "react-dom"
-import { PhotoRecord, baseUrl, definedTags, parseTags, TAG_ICON_MAP } from "."
+import {
+  PhotoRecord,
+  PhotoRecordExtended,
+  baseUrl,
+  definedTags,
+  parseTags,
+  TAG_ICON_MAP,
+} from "."
 import {
   X,
   ChevronLeft,
@@ -29,6 +36,24 @@ export function PhotoSheet({
   const rootRef = useRef<HTMLDivElement>(null)
 
   const currentIndex = photos.findIndex((p) => p.id === selectedPhoto?.id)
+
+  // Extended data (AI description etc.) is not part of the lean list
+  // records, so it is fetched per photo when the lightbox shows it.
+  const [details, setDetails] = useState<PhotoRecordExtended | undefined>()
+  useEffect(() => {
+    setDetails(undefined)
+    if (!selectedPhoto) return
+    let cancelled = false
+    fetch(`${baseUrl}/photos/single/${selectedPhoto.id}`)
+      .then((r) => (r.ok ? (r.json() as Promise<PhotoRecordExtended>) : undefined))
+      .then((d) => {
+        if (!cancelled && d) setDetails(d)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [selectedPhoto?.id])
 
   // Only render a window of neighbours around the current photo in the film
   // strip — rendering (and fetching thumbnails for) the entire photo list
@@ -92,7 +117,11 @@ export function PhotoSheet({
 
   if (!selectedPhoto) return null
 
-  const tagsArray = parseTags(selectedPhoto.tags)
+  // Prefer the freshly fetched record's tags - the list records come from
+  // the initial load and can be stale (e.g. while a labeling job is running).
+  const tagsArray = parseTags(
+    details?.id === selectedPhoto.id ? details.tags : selectedPhoto.tags,
+  )
   const date = parseISO(selectedPhoto.referenceDate)
 
   const tagClicked = async (tag: string) => {
@@ -173,6 +202,27 @@ export function PhotoSheet({
           </button>
         </div>
       </div>
+
+      {/* All tags of the photo, as text (icons above only cover definedTags) */}
+      {tagsArray.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 px-4 pb-1 shrink-0">
+          {tagsArray.map((tag) => (
+            <span
+              key={tag}
+              className="px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[11px] leading-4 tracking-tight"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* AI-generated content description (from the extended record) */}
+      {details?.id === selectedPhoto.id && details.contentDescription && (
+        <div className="px-4 pb-1 text-[12px] leading-5 text-white/60 max-w-4xl shrink-0">
+          {details.contentDescription}
+        </div>
+      )}
 
       {/* Photo */}
       <div className="flex-1 flex items-center justify-center px-16 py-4 min-h-0 relative">

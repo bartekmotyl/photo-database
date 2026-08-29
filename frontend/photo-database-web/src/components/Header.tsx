@@ -16,6 +16,7 @@ type HeaderProps = {
   scale: number
   onScale: (scale: number) => void
   allMonths: string[]
+  allTags: string[]
   selectedMonth: string | null
   onMonthChange: (month: string | null) => void
   selectedTags: string[]
@@ -86,6 +87,7 @@ export function Header({
   scale,
   onScale,
   allMonths,
+  allTags,
   selectedMonth,
   onMonthChange,
   selectedTags,
@@ -116,6 +118,12 @@ export function Header({
         : [...selectedTags, tag],
     )
   }
+
+  // Tags found in the collection that are not among the predefined ones
+  // (e.g. ai-* tags written by the labeler) - filterable, rendered without icons.
+  const extraTags = allTags.filter(
+    (tag) => !definedTags.some((dt) => dt.tag === tag),
+  )
 
   return (
     <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/70 border-b border-black/[0.06]">
@@ -185,7 +193,10 @@ export function Header({
                 </Chip>
               </span>
             </PopoverTrigger>
-            <PopoverContent className="w-44 p-1" align="start">
+            <PopoverContent
+              className="w-48 p-1 max-h-96 overflow-y-auto overscroll-contain"
+              align="start"
+            >
               <div className="flex items-center gap-0.5 p-0.5 mb-1 bg-neutral-100 rounded-md">
                 {(["all", "any"] as const).map((mode) => (
                   <button
@@ -218,6 +229,29 @@ export function Header({
                   >
                     {IconComp && <IconComp size={13} strokeWidth={2} />}
                     <span className="flex-1 text-left">{dt.label}</span>
+                    {on && (
+                      <span className="text-[10px] opacity-70">✓</span>
+                    )}
+                  </button>
+                )
+              })}
+              {extraTags.length > 0 && (
+                <div className="my-1 border-t border-black/5" />
+              )}
+              {extraTags.map((tag) => {
+                const on = selectedTags.includes(tag)
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => { toggleTag(tag); setTagOpen(false) }}
+                    className={
+                      "w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] rounded-md transition " +
+                      (on
+                        ? "bg-neutral-900 text-white"
+                        : "text-neutral-700 hover:bg-neutral-100")
+                    }
+                  >
+                    <span className="flex-1 text-left">{tag}</span>
                     {on && (
                       <span className="text-[10px] opacity-70">✓</span>
                     )}
