@@ -8,14 +8,15 @@ saves both back through the PhotoDB Web API.
 
 1. Fetches photos via `GET /Photos/Search` (optionally scoped by date range),
    ordered by reference date.
-2. Skips photos that already have a content description (this is what makes
-   runs resumable; use `--relabel` to re-process).
+2. Skips photos already carrying the marker tag (`ai-labeled` by default) -
+   every successfully labelled photo gets it, so an interrupted run can
+   simply be restarted. Use `--relabel` to re-process marked photos.
 3. Downloads each photo's thumbnail, sends it to the configured vision model
    together with the prompt and tag list, and expects a JSON object
    `{"description": ..., "tags": [...]}` back.
 4. Validates the tags against the predefined list (unknown tags are dropped)
    and writes the results back via `PATCH /Photos/UpdateDescriptions` and
-   `PATCH /Photos/AddTags`.
+   `PATCH /Photos/AddTags` (model tags plus the marker tag).
 
 ## Setup
 
