@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import "./App.css"
 import { useAsync, useLocalStorage } from "react-use"
 import * as lodash from "lodash"
@@ -52,6 +52,13 @@ function App() {
   const allMonths = lodash.sortBy(
     lodash.uniq(photos.map((p) => p.referenceDate.substring(0, 7))),
     (m) => m,
+  )
+
+  // Every tag present in the loaded collection - feeds the tag filter
+  // dropdown, so tags created outside the UI (e.g. ai-*) are filterable too.
+  const allTags = useMemo(
+    () => lodash.sortBy(lodash.uniq(photos.flatMap((p) => parseTags(p.tags)))),
+    [photos],
   )
 
   let filteredPhotos = photos
@@ -122,6 +129,7 @@ function App() {
         scale={scale}
         onScale={setScaleSaved}
         allMonths={allMonths}
+        allTags={allTags}
         selectedMonth={selectedMonth}
         onMonthChange={(m) => setSelectedMonth(m)}
         selectedTags={selectedTags}
