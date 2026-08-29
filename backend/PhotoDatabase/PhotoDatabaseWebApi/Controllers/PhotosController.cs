@@ -27,11 +27,18 @@ namespace PhotoDatabaseWebApi.Controllers
             return db;
         }
         
+        private static PhotoRecord CreateRecord(PhotoInfo pi, bool extended)
+        {
+            return extended
+                ? PhotoRecordExtended.CreateFromPhotoInfo(pi)
+                : PhotoRecord.CreateFromPhotoInfo(pi);
+        }
+
         [HttpGet]
         public IEnumerable<PhotoRecord> All([FromQuery(Name = "extended")] bool extended = false)
         {
             using var db = GetConnection();
-            var result = db.Table<PhotoInfo>().Select(pi => PhotoRecord.CreateFromPhotoInfo(pi, extended)).ToList();
+            var result = db.Table<PhotoInfo>().Select(pi => CreateRecord(pi, extended)).ToList();
             db.Close();
             return result;
         }
@@ -96,7 +103,7 @@ namespace PhotoDatabaseWebApi.Controllers
         }
 
         [HttpGet("{id}")]
-        public IActionResult Single(int id)
+        public ActionResult<PhotoRecordExtended> Single(int id)
         {
             using var db = GetConnection();
             var pi = db.Find<PhotoInfo>(id);
@@ -104,7 +111,7 @@ namespace PhotoDatabaseWebApi.Controllers
             {
                 return NotFound();
             }
-            return Ok(PhotoRecord.CreateFromPhotoInfo(pi, extended: true));
+            return Ok(PhotoRecordExtended.CreateFromPhotoInfo(pi));
         }
 
         [HttpPatch]
@@ -168,7 +175,7 @@ namespace PhotoDatabaseWebApi.Controllers
                 }
 
             }
-            return result.Select(pi => PhotoRecord.CreateFromPhotoInfo(pi, extended)).ToList();
+            return result.Select(pi => CreateRecord(pi, extended)).ToList();
         }
 
 
