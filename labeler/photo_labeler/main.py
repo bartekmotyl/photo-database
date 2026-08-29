@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import Any
 
 from .api_client import PhotoDbClient
 from .config import load_config
@@ -24,7 +25,7 @@ def main() -> int:
     parser.add_argument("--date-from", default="", help="only photos taken on/after this date (yyyy-mm-dd)")
     parser.add_argument("--date-to", default="", help="only photos taken on/before this date (yyyy-mm-dd)")
     parser.add_argument("--limit", type=int, default=None, help="max photos to process (overrides config)")
-    parser.add_argument("--relabel", action="store_true", help="also process photos that already have a description")
+    parser.add_argument("--relabel", action="store_true", help="also process photos already marked as labelled")
     parser.add_argument("--dry-run", action="store_true", help="query the model but do not write back to the database")
     args = parser.parse_args()
 
@@ -37,10 +38,21 @@ def main() -> int:
     provider = create_provider(config.provider)
     client = PhotoDbClient(config.api.base_url)
 
+    marker_tag = config.labeling.marker_tag.strip()
+    if marker_tag and any(t.name == marker_tag for t in config.tags):
+        print(f"error: marker tag {marker_tag!r} must not appear in the tags file")
+        return 1
+
+    def is_labelled(photo: dict[str, Any]) -> bool:
+        if marker_tag:
+            tags = [t.strip() for t in (photo.get("tags") or "").split(",")]
+            return marker_tag in tags
+        return bool((photo.get("contentDescription") or "").strip())
+
     photos = client.search(date_from=args.date_from, date_to=args.date_to)
     photos.sort(key=lambda p: (p["referenceDate"], p["id"]))
     if skip_labelled:
-        unlabelled = [p for p in photos if not (p.get("contentDescription") or "").strip()]
+        unlabelled = [p for p in photos if not is_labelled(p)]
         print(f"{len(photos)} photos in scope, {len(unlabelled)} not yet labelled")
         photos = unlabelled
     else:
@@ -69,8 +81,11 @@ def main() -> int:
 
         if not args.dry_run:
             client.update_description(photo_id, result.description)
-            if result.tags:
-                client.add_tags(photo_id, result.tags)
+            # The marker tag goes last so a crash in between never leaves a
+            # photo marked as labelled without its labels saved.
+            tags_to_add = result.tags + ([marker_tag] if marker_tag else [])
+            if tags_to_add:
+                client.add_tags(photo_id, tags_to_add)
 
     print(f"done: {len(photos) - failed} labelled, {failed} failed")
     return 1 if failed else 0

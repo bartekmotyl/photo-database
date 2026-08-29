@@ -1,3 +1,6 @@
 .venv/
 __pycache__/
 *.egg-info/
+
+# local run scripts and configs (machine-specific, never committed)
+local/

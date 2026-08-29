@@ -26,6 +26,10 @@ class ProviderConfig:
 class LabelingConfig:
     skip_labelled: bool = True
     limit: int = 0
+    # Tag added to every successfully labelled photo; photos carrying it are
+    # skipped in regular runs (this is what makes restarts after a failure
+    # cheap). Set to "" to fall back to has-a-description as the skip marker.
+    marker_tag: str = "ai-labeled"
 
 
 @dataclass

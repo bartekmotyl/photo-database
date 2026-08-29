@@ -22,9 +22,12 @@ tags_file: tags.yaml
 
 labeling:
   # Photos are processed ordered by referenceDate, then id.
-  # Photos that already have a content description are skipped
-  # (override with --relabel).
+  # Every successfully labelled photo gets the marker tag, and photos
+  # carrying it are skipped in regular runs - so interrupted runs can simply
+  # be restarted. Override with --relabel to re-label marked photos.
+  # Set marker_tag to "" to use "has a description" as the skip marker instead.
   skip_labelled: true
+  marker_tag: ai-labeled
   # Maximum number of photos to process in one run; 0 = no limit.
   # Handy for cheap experiments with big models (also see --limit).
   limit: 0
