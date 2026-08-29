@@ -174,6 +174,20 @@ export function PhotoSheet({
         </div>
       </div>
 
+      {/* All tags of the photo, as text (icons above only cover definedTags) */}
+      {tagsArray.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 px-4 pb-1 shrink-0">
+          {tagsArray.map((tag) => (
+            <span
+              key={tag}
+              className="px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[11px] leading-4 tracking-tight"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Photo */}
       <div className="flex-1 flex items-center justify-center px-16 py-4 min-h-0 relative">
         <img
