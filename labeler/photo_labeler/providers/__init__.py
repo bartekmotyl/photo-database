@@ -5,16 +5,10 @@ from .base import VisionProvider
 
 
 def create_provider(config: ProviderConfig) -> VisionProvider:
-    if config.type == "anthropic":
-        from .anthropic_provider import AnthropicProvider
+    # All providers currently go through LiteLLM (routed by the model name
+    # prefix). The VisionProvider interface stays, so a native SDK
+    # implementation can be added alongside if a provider-specific feature
+    # is ever needed (e.g. a batch API).
+    from .litellm_provider import LiteLlmProvider
 
-        return AnthropicProvider(model=config.model)
-    if config.type == "openai":
-        from .openai_provider import OpenAiProvider
-
-        return OpenAiProvider(model=config.model)
-    if config.type == "ollama":
-        from .ollama_provider import OllamaProvider
-
-        return OllamaProvider(model=config.model, base_url=config.base_url)
-    raise ValueError(f"unknown provider type: {config.type!r} (expected anthropic, openai or ollama)")
+    return LiteLlmProvider(model=config.model, base_url=config.base_url)

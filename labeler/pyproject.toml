@@ -4,8 +4,7 @@ version = "0.1.0"
 description = "AI labeling tool for PhotoDB - describes photos and assigns tags using a vision LLM"
 requires-python = ">=3.10"
 dependencies = [
-    "anthropic>=1.0",
-    "openai>=1.50",
+    "litellm>=1.60",
     "requests>=2.31",
     "PyYAML>=6.0",
 ]

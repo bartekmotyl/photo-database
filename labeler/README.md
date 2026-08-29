@@ -30,9 +30,9 @@ uv sync
 API keys go in the environment, never in config:
 
 ```bash
-export ANTHROPIC_API_KEY=...   # for provider type: anthropic
-export OPENAI_API_KEY=...      # for provider type: openai
-# ollama needs no key, just a running ollama with a vision model pulled
+export ANTHROPIC_API_KEY=...   # for anthropic/... models
+export OPENAI_API_KEY=...      # for openai/... models
+# ollama/... needs no key, just a running ollama with a vision model pulled
 ```
 
 ## Usage
@@ -62,10 +62,15 @@ Everything lives in [config.yaml](config.yaml) (pass a different file with
 `--config`; the prompt and tags files are resolved relative to it):
 
 - `api.base_url` - the PhotoDB Web API.
-- `provider` - `anthropic`, `openai` or `ollama` plus the model name
-  (`ollama` also takes `base_url`). Providers are behind a small interface
-  ([providers/base.py](photo_labeler/providers/base.py)), so adding another
-  backend means implementing one method.
+- `provider.model` - any vision model supported by
+  [LiteLLM](https://docs.litellm.ai/docs/providers), prefixed with the
+  provider: `anthropic/claude-opus-5`, `openai/gpt-5.2`, `ollama/qwen2.5vl`,
+  `gemini/gemini-2.5-pro`, ... (`provider.base_url` is only needed for
+  self-hosted endpoints, e.g. a non-default Ollama address). The LiteLLM
+  call sits behind a one-method interface
+  ([providers/base.py](photo_labeler/providers/base.py)), so a native SDK
+  backend can be added alongside if a provider-specific feature is ever
+  needed (e.g. a batch API).
 - `prompt_file` - the free-form part of the prompt
   ([prompt.md](prompt.md)). The JSON output-format instructions are fixed in
   code ([prompting.py](photo_labeler/prompting.py)) and must stay in sync
@@ -78,9 +83,7 @@ Local models via Ollama example:
 
 ```yaml
 provider:
-  type: ollama
-  model: qwen2.5vl
-  base_url: http://localhost:11434
+  model: ollama/qwen2.5vl
 ```
 
 ## Future ideas

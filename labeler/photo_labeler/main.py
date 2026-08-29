@@ -48,7 +48,7 @@ def main() -> int:
     if limit > 0:
         photos = photos[:limit]
 
-    print(f"labeling {len(photos)} photos with {config.provider.type}/{config.provider.model}"
+    print(f"labeling {len(photos)} photos with {config.provider.model}"
           + (" (dry run)" if args.dry_run else ""))
 
     failed = 0

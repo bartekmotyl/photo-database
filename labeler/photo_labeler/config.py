@@ -15,8 +15,10 @@ class ApiConfig:
 
 @dataclass
 class ProviderConfig:
-    type: str = "anthropic"
-    model: str = "claude-opus-5"
+    # LiteLLM model name, prefixed with the provider,
+    # e.g. "anthropic/claude-opus-5", "openai/gpt-5.2", "ollama/qwen2.5vl".
+    model: str = "anthropic/claude-opus-5"
+    # Only needed for self-hosted endpoints (e.g. non-default Ollama address).
     base_url: str | None = None
 
 
