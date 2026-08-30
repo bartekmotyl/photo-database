@@ -11,12 +11,18 @@ dependencies = [
 
 [project.scripts]
 photo-labeler = "photo_labeler.main:main"
+photo-scorer = "photo_labeler.scorer:main"
 
 [dependency-groups]
 dev = [
     "mypy>=1.13",
     "types-PyYAML",
     "types-requests",
+]
+# Only needed for photo-scorer (pulls in torch): uv sync --group scoring
+scoring = [
+    "aesthetic-predictor-v2-5>=0.1",
+    "pillow>=10.0",
 ]
 
 [build-system]
@@ -29,3 +35,7 @@ include = ["photo_labeler*"]
 [tool.mypy]
 strict = true
 files = ["photo_labeler"]
+
+[[tool.mypy.overrides]]
+module = ["aesthetic_predictor_v2_5.*", "torch.*", "transformers.*"]
+ignore_missing_imports = true
