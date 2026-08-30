@@ -143,6 +143,55 @@ namespace PhotoDatabaseWebApi.Controllers
             return Ok();
         }
 
+        [HttpPatch]
+        public IActionResult UpdateAestheticScores([FromBody] PhotoAestheticScoreUpdate[] updates)
+        {
+            foreach (var entry in updates)
+            {
+                if (entry.Slot is < 0 or > 2)
+                    return BadRequest($"invalid slot {entry.Slot} for photo {entry.PhotoId} (expected 0-2)");
+            }
+
+            using var db = GetConnection();
+            db.BeginTransaction();
+            try
+            {
+                foreach (var entry in updates)
+                {
+                    var photo = db.Table<PhotoInfo>().FirstOrDefault(p => p.Id == entry.PhotoId);
+                    if (photo == null)
+                        return NotFound();
+
+                    switch (entry.Slot)
+                    {
+                        case 0:
+                            photo.AestheticScore0 = entry.Score;
+                            photo.AestheticScoreDescription0 = entry.ScoreDescription;
+                            break;
+                        case 1:
+                            photo.AestheticScore1 = entry.Score;
+                            photo.AestheticScoreDescription1 = entry.ScoreDescription;
+                            break;
+                        case 2:
+                            photo.AestheticScore2 = entry.Score;
+                            photo.AestheticScoreDescription2 = entry.ScoreDescription;
+                            break;
+                    }
+                    db.Update(photo);
+                }
+                db.Commit();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"error when trying to update aesthetic scores");
+            }
+            finally
+            {
+                db.Close();
+            }
+            return Ok();
+        }
+
         [HttpGet]
         public IEnumerable<PhotoRecord> Search(
             [FromQuery(Name = "dateFrom")] string dateFromStr = "",

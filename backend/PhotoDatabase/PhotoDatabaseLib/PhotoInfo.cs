@@ -127,5 +127,17 @@ namespace PhotoDatabaseLib
         public string? SimilarityFactor { get; set; }
 
         public string? Tags { get; set; }
+
+        // Aesthetic evaluation slots, written by external scorers/critics
+        // (e.g. slot 0 = fast aesthetic predictor, slot 1 = MLLM critique).
+        // Score scale is up to the writer; description holds the model name
+        // and/or critique text. Nullable on purpose: existing rows migrate
+        // to NULL and "not scored yet" is a valid state.
+        public int? AestheticScore0 { get; set; }
+        public string? AestheticScoreDescription0 { get; set; }
+        public int? AestheticScore1 { get; set; }
+        public string? AestheticScoreDescription1 { get; set; }
+        public int? AestheticScore2 { get; set; }
+        public string? AestheticScoreDescription2 { get; set; }
     }
 }
