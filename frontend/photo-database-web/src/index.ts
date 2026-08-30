@@ -21,6 +21,11 @@ export type PhotoRecord = {
   thumbnailWidth: number
   thumbnailHeight: number
   tags: string // comma-separated tag ids
+  // Aesthetic scores (value x10 as integer, e.g. 54 = 5.4);
+  // omitted by the API while unscored.
+  aestheticScore0?: number | null
+  aestheticScore1?: number | null
+  aestheticScore2?: number | null
 }
 
 // Returned by /photos/single/{id} (and All/Search with extended=true)
@@ -33,6 +38,9 @@ export type PhotoRecordExtended = PhotoRecord & {
   exifModel: string | null
   exifLongitude: number | null
   exifLatitude: number | null
+  aestheticScoreDescription0: string | null
+  aestheticScoreDescription1: string | null
+  aestheticScoreDescription2: string | null
 }
 
 export type TagEntry = {
