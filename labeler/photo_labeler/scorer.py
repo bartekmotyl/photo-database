@@ -22,6 +22,12 @@ from .main import date_arg
 
 BATCH_DEFAULT = 16
 
+# Written into AestheticScoreDescription0 - marks a photo as scored by this
+# model (the DB-side resume marker, like the labeler's ai-labeled tag).
+MARKER = "aesthetic-predictor-v2-5"
+SLOT = 0
+WRITE_CHUNK = 200
+
 
 def pick_device() -> str:
     import torch
@@ -63,6 +69,11 @@ def main() -> int:
         default=Path(__file__).resolve().parent.parent / "local" / "score-report",
         help="output directory for scores.csv and report.html",
     )
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help=f"write scores to the database (slot {SLOT}, score x10 as integer)",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -70,21 +81,43 @@ def main() -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     csv_path = args.out / "scores.csv"
 
-    photos = client.search(date_from=args.date_from, date_to=args.date_to, extended=False)
+    photos = client.search(date_from=args.date_from, date_to=args.date_to, extended=True)
     photos.sort(key=lambda p: (p["referenceDate"], p["id"]))
     by_id = {p["id"]: p for p in photos}
 
     scores = load_scores(csv_path)
+    # Photos already scored in the database (e.g. from a run on another
+    # machine) count as done; their scores also backfill the report.
+    in_db = set()
+    for p in photos:
+        if (p.get("aestheticScoreDescription0") or "") == MARKER and p.get("aestheticScore0") is not None:
+            in_db.add(p["id"])
+            scores.setdefault(p["id"], p["aestheticScore0"] / 10)
+
     todo = [p for p in photos if p["id"] not in scores]
-    print(f"{len(photos)} photos in scope, {len(scores)} already scored, {len(todo)} to score")
+    already = sum(1 for p in photos if p["id"] in scores)
+    print(f"{len(photos)} photos in scope, {already} already scored, {len(todo)} to score")
     if args.limit > 0:
         todo = todo[: args.limit]
 
     if todo:
         score_photos(todo, client, csv_path, args.batch_size, args.device or pick_device())
         scores = load_scores(csv_path)
+        for pid in in_db:
+            scores.setdefault(pid, by_id[pid]["aestheticScore0"] / 10)
 
     scored_in_scope = {pid: s for pid, s in scores.items() if pid in by_id}
+
+    if args.write:
+        to_write = [
+            {"photoId": pid, "slot": SLOT, "score": round(s * 10), "scoreDescription": MARKER}
+            for pid, s in scored_in_scope.items()
+            if pid not in in_db
+        ]
+        print(f"writing {len(to_write)} scores to the database (slot {SLOT})")
+        for start in range(0, len(to_write), WRITE_CHUNK):
+            client.update_aesthetic_scores(to_write[start : start + WRITE_CHUNK])
+            print(f"  written {min(start + WRITE_CHUNK, len(to_write))}/{len(to_write)}")
     report_path = args.out / "report.html"
     write_report(report_path, scored_in_scope, by_id, config.api.base_url, args.date_from, args.date_to)
     print(f"report: {report_path} ({len(scored_in_scope)} photos)")
