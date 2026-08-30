@@ -24,6 +24,16 @@ namespace PhotoDatabaseWebApi
         public int ThumbnailHeight { get; set; }
         public string Tags { get; set; } = "";
 
+        // Aesthetic scores are part of the lean record (the UI filters/sorts
+        // by them); omitted from JSON while null so unscored photos cost
+        // nothing. The score descriptions stay on PhotoRecordExtended.
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? AestheticScore0 { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? AestheticScore1 { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? AestheticScore2 { get; set; }
+
         public static PhotoRecord CreateFromPhotoInfo(PhotoInfo pi)
         {
             var record = new PhotoRecord();
@@ -43,6 +53,9 @@ namespace PhotoDatabaseWebApi
             ThumbnailHeight = pi.ThumbnailHeight;
             FileName = pi.FileName;
             Tags = pi.Tags ?? "";
+            AestheticScore0 = pi.AestheticScore0;
+            AestheticScore1 = pi.AestheticScore1;
+            AestheticScore2 = pi.AestheticScore2;
         }
     }
 
@@ -56,11 +69,8 @@ namespace PhotoDatabaseWebApi
         public string? ExifModel { get; set; }
         public double? ExifLongitude { get; set; }
         public double? ExifLatitude { get; set; }
-        public int? AestheticScore0 { get; set; }
         public string? AestheticScoreDescription0 { get; set; }
-        public int? AestheticScore1 { get; set; }
         public string? AestheticScoreDescription1 { get; set; }
-        public int? AestheticScore2 { get; set; }
         public string? AestheticScoreDescription2 { get; set; }
 
         public new static PhotoRecordExtended CreateFromPhotoInfo(PhotoInfo pi)
@@ -75,11 +85,8 @@ namespace PhotoDatabaseWebApi
             record.ExifModel = pi.ExifModel;
             record.ExifLongitude = pi.ExifLongitude;
             record.ExifLatitude = pi.ExifLatitude;
-            record.AestheticScore0 = pi.AestheticScore0;
             record.AestheticScoreDescription0 = pi.AestheticScoreDescription0;
-            record.AestheticScore1 = pi.AestheticScore1;
             record.AestheticScoreDescription1 = pi.AestheticScoreDescription1;
-            record.AestheticScore2 = pi.AestheticScore2;
             record.AestheticScoreDescription2 = pi.AestheticScoreDescription2;
             return record;
         }
