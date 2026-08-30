@@ -56,6 +56,12 @@ namespace PhotoDatabaseWebApi
         public string? ExifModel { get; set; }
         public double? ExifLongitude { get; set; }
         public double? ExifLatitude { get; set; }
+        public int? AestheticScore0 { get; set; }
+        public string? AestheticScoreDescription0 { get; set; }
+        public int? AestheticScore1 { get; set; }
+        public string? AestheticScoreDescription1 { get; set; }
+        public int? AestheticScore2 { get; set; }
+        public string? AestheticScoreDescription2 { get; set; }
 
         public new static PhotoRecordExtended CreateFromPhotoInfo(PhotoInfo pi)
         {
@@ -69,6 +75,12 @@ namespace PhotoDatabaseWebApi
             record.ExifModel = pi.ExifModel;
             record.ExifLongitude = pi.ExifLongitude;
             record.ExifLatitude = pi.ExifLatitude;
+            record.AestheticScore0 = pi.AestheticScore0;
+            record.AestheticScoreDescription0 = pi.AestheticScoreDescription0;
+            record.AestheticScore1 = pi.AestheticScore1;
+            record.AestheticScoreDescription1 = pi.AestheticScoreDescription1;
+            record.AestheticScore2 = pi.AestheticScore2;
+            record.AestheticScoreDescription2 = pi.AestheticScoreDescription2;
             return record;
         }
     }
@@ -83,5 +95,15 @@ namespace PhotoDatabaseWebApi
     {
         public int PhotoId { get; set; }
         public string ContentDescription { get; set; } = "";
+    }
+
+    public record PhotoAestheticScoreUpdate
+    {
+        public int PhotoId { get; set; }
+        // Which of the three aesthetic slots (0-2) to write.
+        public int Slot { get; set; }
+        // Null clears the slot.
+        public int? Score { get; set; }
+        public string? ScoreDescription { get; set; }
     }
 }
