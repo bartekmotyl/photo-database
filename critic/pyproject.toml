@@ -1,0 +1,46 @@
+[project]
+name = "photo-critic"
+version = "0.1.0"
+description = "ArtiMuse aesthetic critique for PhotoDB - writes score + expert analysis to aesthetic slot 1"
+# ArtiMuse pins transformers==4.37.2, which needs an older Python than the labeler uses.
+requires-python = ">=3.10,<3.12"
+dependencies = [
+    "torch>=2",
+    "torchvision>=0.15",
+    "transformers==4.37.2",
+    "timm==0.9.12",
+    "numpy==1.26.4",
+    "accelerate<1",
+    "einops>=0.7",
+    "sentencepiece>=0.1.99",
+    "huggingface_hub>=0.23",
+    "pillow>=10.0",
+    "requests>=2.31",
+    "PyYAML>=6.0",
+]
+
+[project.scripts]
+photo-critic = "photo_critic.main:main"
+photo-critic-setup = "photo_critic.setup_cmd:main"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.13",
+    "types-PyYAML",
+    "types-requests",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["photo_critic*"]
+
+[tool.mypy]
+strict = true
+files = ["photo_critic"]
+
+[[tool.mypy.overrides]]
+module = ["torch.*", "torchvision.*", "transformers.*", "artimuse.*", "huggingface_hub.*"]
+ignore_missing_imports = true
