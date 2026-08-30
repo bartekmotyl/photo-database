@@ -25,6 +25,8 @@ type HeaderProps = {
   onTagMatchModeChange: (mode: "all" | "any") => void
   sort: "newest" | "oldest" | "random"
   onSortChange: (sort: "newest" | "oldest" | "random") => void
+  minScore: number
+  onMinScoreChange: (minScore: number) => void
 }
 
 function Chip({
@@ -96,6 +98,8 @@ export function Header({
   onTagMatchModeChange,
   sort,
   onSortChange,
+  minScore,
+  onMinScoreChange,
 }: HeaderProps) {
   const monthChipLabel = selectedMonth ? monthLabel(selectedMonth) : "All months"
   const tagChipLabel =
@@ -267,6 +271,31 @@ export function Header({
               </button>
             </PopoverContent>
           </Popover>
+
+          {/* Aesthetic score filter (slot 0); 0 = show everything */}
+          <div
+            className={
+              "flex items-center gap-2 h-8 px-3 rounded-full text-[12.5px] font-medium border " +
+              (minScore > 0
+                ? "bg-neutral-900 text-white border-neutral-900"
+                : "bg-white/70 text-neutral-700 border-black/5")
+            }
+            title="Minimum aesthetic score (photos without a score are hidden when > 0)"
+          >
+            <span>★</span>
+            <input
+              type="range"
+              min={0}
+              max={10}
+              step={0.1}
+              value={minScore}
+              onChange={(e) => onMinScoreChange(parseFloat(e.target.value))}
+              className="w-24 accent-neutral-900"
+            />
+            <span className="w-7 tabular-nums">
+              {minScore > 0 ? minScore.toFixed(1) : "any"}
+            </span>
+          </div>
 
           {/* Sort chip */}
           <Popover open={sortOpen} onOpenChange={setSortOpen}>

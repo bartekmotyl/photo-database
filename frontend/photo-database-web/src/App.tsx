@@ -47,6 +47,7 @@ function App() {
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [tagMatchMode, setTagMatchMode] = useState<TagMatchMode>("all")
+  const [minScore, setMinScore] = useState(0)
   const [sort, setSort] = useState<SortOrder>("newest")
   const [lightboxPhoto, setLightboxPhoto] = useState<PhotoRecord | undefined>()
 
@@ -79,6 +80,13 @@ function App() {
     })
   }
 
+  if (minScore > 0) {
+    // Score is stored x10 as integer; photos without a score don't qualify.
+    filteredPhotos = filteredPhotos.filter(
+      (p) => (p.aestheticScore0 ?? -1) >= minScore * 10,
+    )
+  }
+
   if (sort === "oldest") {
     filteredPhotos = lodash.sortBy(filteredPhotos, (p) => p.referenceDate)
   } else if (sort === "newest") {
@@ -100,7 +108,7 @@ function App() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [selectedMonth, selectedTags.join(","), tagMatchMode, sort])
+  }, [selectedMonth, selectedTags.join(","), tagMatchMode, sort, minScore])
 
   // Clamp page if filtered result shrinks
   useEffect(() => {
@@ -139,6 +147,8 @@ function App() {
         onTagMatchModeChange={setTagMatchMode}
         sort={sort}
         onSortChange={setSort}
+        minScore={minScore}
+        onMinScoreChange={setMinScore}
       />
 
       <SubBar

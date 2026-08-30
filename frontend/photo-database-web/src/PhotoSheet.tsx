@@ -122,6 +122,9 @@ export function PhotoSheet({
   const tagsArray = parseTags(
     details?.id === selectedPhoto.id ? details.tags : selectedPhoto.tags,
   )
+  const aestheticScore =
+    (details?.id === selectedPhoto.id ? details.aestheticScore0 : null) ??
+    selectedPhoto.aestheticScore0
   const date = parseISO(selectedPhoto.referenceDate)
 
   const tagClicked = async (tag: string) => {
@@ -164,6 +167,9 @@ export function PhotoSheet({
           </div>
           <div className="text-[11px] text-white/55 truncate">
             {selectedPhoto.width} × {selectedPhoto.height}
+            {aestheticScore != null && (
+              <span title="aesthetic score"> · ★ {(aestheticScore / 10).toFixed(1)}</span>
+            )}
           </div>
         </div>
 
