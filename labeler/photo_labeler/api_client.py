@@ -46,6 +46,15 @@ class PhotoDbClient:
         )
         response.raise_for_status()
 
+    def update_aesthetic_scores(self, updates: list[dict[str, Any]]) -> None:
+        """updates: [{"photoId": ..., "slot": 0-2, "score": ..., "scoreDescription": ...}]"""
+        response = self.session.patch(
+            f"{self.base_url}/Photos/UpdateAestheticScores",
+            json=updates,
+            timeout=120,
+        )
+        response.raise_for_status()
+
     def update_description(self, photo_id: int, description: str) -> None:
         response = self.session.patch(
             f"{self.base_url}/Photos/UpdateDescriptions",
