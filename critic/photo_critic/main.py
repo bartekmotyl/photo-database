@@ -151,6 +151,8 @@ def main() -> int:
                 cache[photo["id"]] = entry
                 print(f"[{index}/{len(todo)}] photo {photo['id']} ({photo['fileName']}): "
                       f"artimuse {result.score:.0f}/100 (slot0 {photo['aestheticScore0'] / 10:.1f})")
+                for aspect, text in result.analysis.items():
+                    print(f"    [{aspect}] {text}")
 
     if args.write:
         eligible_ids = {p["id"] for p in eligible}
