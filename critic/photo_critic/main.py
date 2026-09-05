@@ -67,6 +67,15 @@ def format_description(entry: dict[str, Any]) -> str:
     return "\n".join(parts)
 
 
+def make_update(entry: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "photoId": entry["id"],
+        "slot": SLOT,
+        "score": round(entry["score"]),
+        "scoreDescription": format_description(entry),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Critique high-scoring PhotoDB photos with ArtiMuse (slot 1)."
@@ -86,6 +95,8 @@ def main() -> int:
                         help=f"write critiques to the database (slot {SLOT}); off = dry run")
     parser.add_argument("--stub", action="store_true",
                         help="use a stub instead of the real model (pipeline test; implies no writes)")
+    parser.add_argument("--push-only", action="store_true",
+                        help="skip critiquing; only push already-cached critiques (with --write)")
     args = parser.parse_args()
 
     with open(args.config, encoding="utf-8") as f:
@@ -123,6 +134,8 @@ def main() -> int:
     )
     if args.limit > 0:
         todo = todo[: args.limit]
+    if args.push_only:
+        todo = []
 
     if todo:
         if args.stub:
@@ -149,20 +162,23 @@ def main() -> int:
                 cache_file.write(json.dumps(entry, ensure_ascii=False) + "\n")
                 cache_file.flush()
                 cache[photo["id"]] = entry
+                if args.write:
+                    # Write immediately - long runs are routinely interrupted,
+                    # and a deferred bulk write would lose nothing but would
+                    # leave the DB empty until the very end.
+                    client.update_aesthetic_scores([make_update(entry)])
+                    in_db.add(photo["id"])
                 print(f"[{index}/{len(todo)}] photo {photo['id']} ({photo['fileName']}): "
                       f"artimuse {result.score:.0f}/100 (slot0 {photo['aestheticScore0'] / 10:.1f})")
                 for aspect, text in result.analysis.items():
                     print(f"    [{aspect}] {text}")
 
     if args.write:
+        # Catch-up push: cached critiques from earlier runs that never
+        # reached the database (e.g. interrupted runs without --write).
         eligible_ids = {p["id"] for p in eligible}
         to_write = [
-            {
-                "photoId": pid,
-                "slot": SLOT,
-                "score": round(entry["score"]),
-                "scoreDescription": format_description(entry),
-            }
+            make_update(entry)
             for pid, entry in cache.items()
             if pid in eligible_ids and pid not in in_db
         ]
