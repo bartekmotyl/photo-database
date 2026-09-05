@@ -23,10 +23,72 @@ type HeaderProps = {
   onTagsChange: (tags: string[]) => void
   tagMatchMode: "all" | "any"
   onTagMatchModeChange: (mode: "all" | "any") => void
-  sort: "newest" | "oldest" | "random"
-  onSortChange: (sort: "newest" | "oldest" | "random") => void
+  sort: SortOption
+  onSortChange: (sort: SortOption) => void
   minScore: number
   onMinScoreChange: (minScore: number) => void
+  minScore1: number
+  onMinScore1Change: (minScore1: number) => void
+}
+
+type SortOption = "newest" | "oldest" | "random" | "score0" | "score1"
+
+const SORT_LABELS: Record<SortOption, string> = {
+  newest: "Newest first",
+  oldest: "Oldest first",
+  random: "Random",
+  score0: "Aesthetic score",
+  score1: "Evaluation score",
+}
+
+// Slider chip with -/+ buttons for fine tuning. 0 means "no filter".
+function ScoreSlider({
+  icon,
+  label,
+  max,
+  step,
+  value,
+  onChange,
+}: {
+  icon: string
+  label: string
+  max: number
+  step: number
+  value: number
+  onChange: (value: number) => void
+}) {
+  const decimals = step < 1 ? 1 : 0
+  const nudge = (direction: number) => {
+    const next = Math.min(max, Math.max(0, value + direction * step))
+    onChange(parseFloat(next.toFixed(decimals)))
+  }
+  return (
+    <div
+      className={
+        "flex items-center gap-1.5 h-8 px-2.5 rounded-full text-[12.5px] font-medium border " +
+        (value > 0
+          ? "bg-neutral-900 text-white border-neutral-900"
+          : "bg-white/70 text-neutral-700 border-black/5")
+      }
+      title={label}
+    >
+      <span>{icon}</span>
+      <button onClick={() => nudge(-1)} className="px-0.5 opacity-70 hover:opacity-100">−</button>
+      <input
+        type="range"
+        min={0}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="w-20 accent-neutral-900"
+      />
+      <button onClick={() => nudge(1)} className="px-0.5 opacity-70 hover:opacity-100">+</button>
+      <span className="w-8 tabular-nums text-right">
+        {value > 0 ? value.toFixed(decimals) : "any"}
+      </span>
+    </div>
+  )
 }
 
 function Chip({
@@ -100,6 +162,8 @@ export function Header({
   onSortChange,
   minScore,
   onMinScoreChange,
+  minScore1,
+  onMinScore1Change,
 }: HeaderProps) {
   const monthChipLabel = selectedMonth ? monthLabel(selectedMonth) : "All months"
   const tagChipLabel =
@@ -108,8 +172,7 @@ export function Header({
       : selectedTags.length === 1
         ? (definedTags.find((t) => t.tag === selectedTags[0])?.label ?? selectedTags[0])
         : `${selectedTags.length} tags`
-  const sortLabel =
-    sort === "newest" ? "Newest" : sort === "oldest" ? "Oldest" : "Random"
+  const sortLabel = SORT_LABELS[sort]
 
   const [monthOpen, setMonthOpen] = useState(false)
   const [tagOpen, setTagOpen] = useState(false)
@@ -272,30 +335,22 @@ export function Header({
             </PopoverContent>
           </Popover>
 
-          {/* Aesthetic score filter (slot 0); 0 = show everything */}
-          <div
-            className={
-              "flex items-center gap-2 h-8 px-3 rounded-full text-[12.5px] font-medium border " +
-              (minScore > 0
-                ? "bg-neutral-900 text-white border-neutral-900"
-                : "bg-white/70 text-neutral-700 border-black/5")
-            }
-            title="Minimum aesthetic score (photos without a score are hidden when > 0)"
-          >
-            <span>★</span>
-            <input
-              type="range"
-              min={0}
-              max={10}
-              step={0.1}
-              value={minScore}
-              onChange={(e) => onMinScoreChange(parseFloat(e.target.value))}
-              className="w-24 accent-neutral-900"
-            />
-            <span className="w-7 tabular-nums">
-              {minScore > 0 ? minScore.toFixed(1) : "any"}
-            </span>
-          </div>
+          <ScoreSlider
+            icon="★"
+            label="Minimum aesthetic score, slot 0 (photos without a score are hidden when > 0)"
+            max={10}
+            step={0.1}
+            value={minScore}
+            onChange={onMinScoreChange}
+          />
+          <ScoreSlider
+            icon="✦"
+            label="Minimum evaluation score, slot 1 (photos without one are hidden when > 0)"
+            max={100}
+            step={1}
+            value={minScore1}
+            onChange={onMinScore1Change}
+          />
 
           {/* Sort chip */}
           <Popover open={sortOpen} onOpenChange={setSortOpen}>
@@ -304,23 +359,19 @@ export function Header({
                 <Chip leading={<ArrowUpDown size={13} />}>{sortLabel}</Chip>
               </span>
             </PopoverTrigger>
-            <PopoverContent className="w-40 p-1" align="start">
-              {(["newest", "oldest", "random"] as const).map((s) => (
+            <PopoverContent className="w-44 p-1" align="start">
+              {(Object.keys(SORT_LABELS) as SortOption[]).map((s) => (
                 <button
                   key={s}
                   onClick={() => { onSortChange(s); setSortOpen(false) }}
                   className={
-                    "w-full text-left px-3 py-1.5 text-[12.5px] rounded-md transition capitalize " +
+                    "w-full text-left px-3 py-1.5 text-[12.5px] rounded-md transition " +
                     (sort === s
                       ? "bg-neutral-900 text-white"
                       : "text-neutral-700 hover:bg-neutral-100")
                   }
                 >
-                  {s === "newest"
-                    ? "Newest first"
-                    : s === "oldest"
-                      ? "Oldest first"
-                      : "Random"}
+                  {SORT_LABELS[s]}
                 </button>
               ))}
             </PopoverContent>

@@ -9,7 +9,7 @@ import { SubBar } from "./components/SubBar"
 import { JustifiedGrid } from "./components/JustifiedGrid"
 import { PaginationStrip } from "./components/PaginationStrip"
 
-type SortOrder = "newest" | "oldest" | "random"
+type SortOrder = "newest" | "oldest" | "random" | "score0" | "score1"
 type TagMatchMode = "all" | "any"
 
 const ROW_HEIGHT_MAP: Record<number, number> = {
@@ -48,6 +48,7 @@ function App() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [tagMatchMode, setTagMatchMode] = useState<TagMatchMode>("all")
   const [minScore, setMinScore] = useState(0)
+  const [minScore1, setMinScore1] = useState(0)
   const [sort, setSort] = useState<SortOrder>("newest")
   const [lightboxPhoto, setLightboxPhoto] = useState<PhotoRecord | undefined>()
 
@@ -87,6 +88,13 @@ function App() {
     )
   }
 
+  if (minScore1 > 0) {
+    // Evaluation score (slot 1) is 0-100; photos without one don't qualify.
+    filteredPhotos = filteredPhotos.filter(
+      (p) => (p.aestheticScore1 ?? -1) >= minScore1,
+    )
+  }
+
   if (sort === "oldest") {
     filteredPhotos = lodash.sortBy(filteredPhotos, (p) => p.referenceDate)
   } else if (sort === "newest") {
@@ -96,6 +104,18 @@ function App() {
     ).reverse()
   } else if (sort === "random") {
     filteredPhotos = lodash.shuffle(filteredPhotos)
+  } else if (sort === "score0") {
+    filteredPhotos = lodash.orderBy(
+      filteredPhotos,
+      [(p) => p.aestheticScore0 ?? -1, (p) => p.referenceDate],
+      ["desc", "desc"],
+    )
+  } else if (sort === "score1") {
+    filteredPhotos = lodash.orderBy(
+      filteredPhotos,
+      [(p) => p.aestheticScore1 ?? -1, (p) => p.referenceDate],
+      ["desc", "desc"],
+    )
   }
 
   const numPages = Math.max(1, Math.ceil(filteredPhotos.length / pageSize))
@@ -108,7 +128,7 @@ function App() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [selectedMonth, selectedTags.join(","), tagMatchMode, sort, minScore])
+  }, [selectedMonth, selectedTags.join(","), tagMatchMode, sort, minScore, minScore1])
 
   // Clamp page if filtered result shrinks
   useEffect(() => {
@@ -149,6 +169,8 @@ function App() {
         onSortChange={setSort}
         minScore={minScore}
         onMinScoreChange={setMinScore}
+        minScore1={minScore1}
+        onMinScore1Change={setMinScore1}
       />
 
       <SubBar

@@ -122,9 +122,10 @@ export function PhotoSheet({
   const tagsArray = parseTags(
     details?.id === selectedPhoto.id ? details.tags : selectedPhoto.tags,
   )
-  const aestheticScore =
-    (details?.id === selectedPhoto.id ? details.aestheticScore0 : null) ??
-    selectedPhoto.aestheticScore0
+  const freshDetails = details?.id === selectedPhoto.id ? details : undefined
+  const aestheticScore = freshDetails?.aestheticScore0 ?? selectedPhoto.aestheticScore0
+  const evaluationScore = freshDetails?.aestheticScore1 ?? selectedPhoto.aestheticScore1
+  const evaluationText = freshDetails?.aestheticScoreDescription1
   const date = parseISO(selectedPhoto.referenceDate)
 
   const tagClicked = async (tag: string) => {
@@ -169,6 +170,9 @@ export function PhotoSheet({
             {selectedPhoto.width} × {selectedPhoto.height}
             {aestheticScore != null && (
               <span title="aesthetic score"> · ★ {(aestheticScore / 10).toFixed(1)}</span>
+            )}
+            {evaluationScore != null && (
+              <span title="evaluation score"> · ✦ {evaluationScore}/100</span>
             )}
           </div>
         </div>
@@ -224,9 +228,16 @@ export function PhotoSheet({
       )}
 
       {/* AI-generated content description (from the extended record) */}
-      {details?.id === selectedPhoto.id && details.contentDescription && (
+      {freshDetails?.contentDescription && (
         <div className="px-4 pb-1 text-[12px] leading-5 text-white/60 max-w-4xl shrink-0">
-          {details.contentDescription}
+          {freshDetails.contentDescription}
+        </div>
+      )}
+
+      {/* AI evaluation details (slot 1 critique) */}
+      {evaluationText && (
+        <div className="px-4 pb-1 text-[11.5px] leading-5 text-white/45 max-w-4xl shrink-0 max-h-24 overflow-y-auto whitespace-pre-line">
+          {evaluationText}
         </div>
       )}
 
