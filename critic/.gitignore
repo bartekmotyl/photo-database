@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.egg-info/
+
+# Fetched by photo-critic-setup (ArtiMuse repo clone + ~16GB checkpoint)
+vendor/
+checkpoints/
+
+# critique cache and reports
+local/

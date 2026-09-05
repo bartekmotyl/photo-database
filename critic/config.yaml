@@ -1,0 +1,18 @@
+# PhotoDB critic configuration.
+
+api:
+  base_url: http://localhost:8066
+
+critique:
+  # Only photos whose slot-0 score (aesthetic-predictor-v2-5, x10 integer)
+  # is at least min_score x10 are critiqued (1-10 scale here).
+  min_score: 6.0
+  # ArtiMuse aspects to ask about, in addition to the numeric score.
+  # The full list (slow - 8 chat rounds per photo):
+  #   Composition & Design, Visual Elements & Structure, Technical Execution,
+  #   Originality & Creativity, Theme & Communication,
+  #   Emotion & Viewer Response, Overall Gestalt, Comprehensive Evaluation
+  attributes:
+    - Comprehensive Evaluation
+  # Cap on generated tokens per aspect.
+  max_new_tokens: 1024
