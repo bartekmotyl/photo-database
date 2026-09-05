@@ -37,6 +37,9 @@ export function PhotoSheet({
 
   const currentIndex = photos.findIndex((p) => p.id === selectedPhoto?.id)
 
+  // Info panel with AI description/evaluation; stays open while navigating.
+  const [infoOpen, setInfoOpen] = useState(false)
+
   // Extended data (AI description etc.) is not part of the lean list
   // records, so it is fetched per photo when the lightbox shows it.
   const [details, setDetails] = useState<PhotoRecordExtended | undefined>()
@@ -77,6 +80,8 @@ export function PhotoSheet({
       } else if (e.key === "ArrowRight") {
         const next = photos[currentIndex + 1]
         if (next) onNavigate(next)
+      } else if (e.key === "i") {
+        setInfoOpen((open) => !open)
       }
     }
     window.addEventListener("keydown", handleKey)
@@ -198,7 +203,14 @@ export function PhotoSheet({
             )
           })}
           <span className="mx-2 w-px h-5 bg-white/15" />
-          <button className="grid place-items-center w-9 h-9 rounded-full text-white/75 hover:bg-white/10">
+          <button
+            onClick={() => setInfoOpen((open) => !open)}
+            title="AI description and evaluation (i)"
+            className={
+              "grid place-items-center w-9 h-9 rounded-full transition " +
+              (infoOpen ? "bg-white text-neutral-900" : "text-white/75 hover:bg-white/10")
+            }
+          >
             <Info size={16} strokeWidth={2} />
           </button>
           <button
@@ -224,20 +236,6 @@ export function PhotoSheet({
               {tag}
             </span>
           ))}
-        </div>
-      )}
-
-      {/* AI-generated content description (from the extended record) */}
-      {freshDetails?.contentDescription && (
-        <div className="px-4 pb-1 text-[12px] leading-5 text-white/60 max-w-4xl shrink-0">
-          {freshDetails.contentDescription}
-        </div>
-      )}
-
-      {/* AI evaluation details (slot 1 critique) */}
-      {evaluationText && (
-        <div className="px-4 pb-1 text-[11.5px] leading-5 text-white/45 max-w-4xl shrink-0 max-h-24 overflow-y-auto whitespace-pre-line">
-          {evaluationText}
         </div>
       )}
 
@@ -268,6 +266,24 @@ export function PhotoSheet({
           >
             <ChevronRight size={22} />
           </button>
+        )}
+
+        {/* Info panel: AI description + evaluation, overlaid so the photo keeps its size */}
+        {infoOpen && (
+          <div className="absolute right-0 top-0 bottom-0 w-96 max-w-[45%] bg-neutral-950/90 backdrop-blur-sm border-l border-white/10 p-5 overflow-y-auto">
+            <div className="text-[12px] font-semibold text-white/80 uppercase tracking-wide mb-2">
+              Description
+            </div>
+            <div className="text-[12.5px] leading-5 text-white/70 mb-5">
+              {freshDetails?.contentDescription || (freshDetails ? "(no description)" : "loading…")}
+            </div>
+            <div className="text-[12px] font-semibold text-white/80 uppercase tracking-wide mb-2">
+              Evaluation{evaluationScore != null && ` · ${evaluationScore}/100`}
+            </div>
+            <div className="text-[12.5px] leading-5 text-white/70 whitespace-pre-line">
+              {evaluationText || (freshDetails ? "(not evaluated yet)" : "loading…")}
+            </div>
+          </div>
         )}
       </div>
 
