@@ -64,6 +64,14 @@ function App() {
     [photos],
   )
 
+  // The whole collection in capture order - the lightbox's "time" navigation
+  // mode uses it to show photos shot around the selected one, regardless of
+  // the grid's current filters and sort.
+  const allPhotosByDate = useMemo(
+    () => lodash.orderBy(photos, [(p) => p.referenceDate, (p) => p.id]),
+    [photos],
+  )
+
   let filteredPhotos = photos
 
   if (selectedMonth) {
@@ -213,6 +221,7 @@ function App() {
 
       <PhotoSheet
         photos={filteredPhotos}
+        allPhotosByDate={allPhotosByDate}
         selectedPhoto={lightboxPhoto}
         onClose={() => setLightboxPhoto(undefined)}
         onNavigate={setLightboxPhoto}

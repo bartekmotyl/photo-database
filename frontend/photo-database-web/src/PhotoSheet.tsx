@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { format, parseISO } from "date-fns"
 import { createPortal } from "react-dom"
+import { useLocalStorage } from "react-use"
 import {
   PhotoRecord,
   PhotoRecordExtended,
@@ -13,20 +14,27 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Info,
+  List,
   MoreHorizontal,
 } from "lucide-react"
 
 export type PhotoSheetProps = {
   photos: PhotoRecord[]
+  // Whole collection in capture order, for the "time" navigation mode.
+  allPhotosByDate: PhotoRecord[]
   selectedPhoto: PhotoRecord | undefined
   onPhotoUpdated: (photo: PhotoRecord) => void
   onNavigate: (photo: PhotoRecord) => void
   onClose: () => void
 }
 
+type NavMode = "list" | "time"
+
 export function PhotoSheet({
   photos,
+  allPhotosByDate,
   selectedPhoto,
   onClose,
   onPhotoUpdated,
@@ -35,7 +43,15 @@ export function PhotoSheet({
   const filmRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
 
-  const currentIndex = photos.findIndex((p) => p.id === selectedPhoto?.id)
+  // Navigation context: the grid's filtered+sorted list, or the whole
+  // collection by capture time (to browse photos from the same shot/session
+  // even when the grid is sorted by score). Applies to the film strip, the
+  // arrows and the keyboard alike.
+  const [navModeSaved, setNavMode] = useLocalStorage<NavMode>("lightboxNavMode", "list")
+  const navMode: NavMode = navModeSaved ?? "list"
+  const navPhotos = navMode === "time" ? allPhotosByDate : photos
+
+  const currentIndex = navPhotos.findIndex((p) => p.id === selectedPhoto?.id)
 
   // Info panel with AI description/evaluation; stays open while navigating.
   const [infoOpen, setInfoOpen] = useState(false)
@@ -67,7 +83,7 @@ export function PhotoSheet({
   const filmStripPhotos =
     currentIndex < 0
       ? []
-      : photos.slice(filmStripStart, currentIndex + FILM_STRIP_RADIUS + 1)
+      : navPhotos.slice(filmStripStart, currentIndex + FILM_STRIP_RADIUS + 1)
 
   useEffect(() => {
     if (!selectedPhoto) return
@@ -75,10 +91,10 @@ export function PhotoSheet({
       if (e.key === "Escape") {
         onClose()
       } else if (e.key === "ArrowLeft") {
-        const prev = photos[currentIndex - 1]
+        const prev = currentIndex > 0 ? navPhotos[currentIndex - 1] : undefined
         if (prev) onNavigate(prev)
       } else if (e.key === "ArrowRight") {
-        const next = photos[currentIndex + 1]
+        const next = currentIndex >= 0 ? navPhotos[currentIndex + 1] : undefined
         if (next) onNavigate(next)
       } else if (e.key === "i") {
         setInfoOpen((open) => !open)
@@ -86,7 +102,7 @@ export function PhotoSheet({
     }
     window.addEventListener("keydown", handleKey)
     return () => window.removeEventListener("keydown", handleKey)
-  }, [selectedPhoto, currentIndex, photos, onClose, onNavigate])
+  }, [selectedPhoto, currentIndex, navPhotos, onClose, onNavigate])
 
   // Prevent the page behind the lightbox from scrolling
   useEffect(() => {
@@ -253,7 +269,7 @@ export function PhotoSheet({
         {/* Left arrow */}
         {currentIndex > 0 && (
           <button
-            onClick={() => onNavigate(photos[currentIndex - 1])}
+            onClick={() => onNavigate(navPhotos[currentIndex - 1])}
             className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 grid place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
           >
             <ChevronLeft size={22} />
@@ -261,9 +277,9 @@ export function PhotoSheet({
         )}
 
         {/* Right arrow */}
-        {currentIndex < photos.length - 1 && (
+        {currentIndex >= 0 && currentIndex < navPhotos.length - 1 && (
           <button
-            onClick={() => onNavigate(photos[currentIndex + 1])}
+            onClick={() => onNavigate(navPhotos[currentIndex + 1])}
             className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 grid place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
           >
             <ChevronRight size={22} />
@@ -289,30 +305,60 @@ export function PhotoSheet({
         )}
       </div>
 
-      {/* Film strip */}
-      <div
-        ref={filmRef}
-        className="h-20 flex items-center gap-1.5 px-4 overflow-x-auto shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {filmStripPhotos.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => onNavigate(p)}
-            className={
-              "relative shrink-0 rounded-md overflow-hidden transition " +
-              (p.id === selectedPhoto.id
-                ? "ring-2 ring-white"
-                : "opacity-65 hover:opacity-100")
-            }
-            style={{ width: 56, height: 56 }}
-          >
-            <img
-              src={`${baseUrl}/photos/thumbnail/${p.id}`}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          </button>
-        ))}
+      {/* Film strip with navigation-mode toggle */}
+      <div className="h-20 flex items-center shrink-0 px-4 gap-2">
+        <div className="flex flex-col gap-1 shrink-0">
+          {(
+            [
+              ["list", List, "Navigate the current list order"],
+              ["time", Clock, "Navigate by capture time (whole collection)"],
+            ] as const
+          ).map(([mode, IconComp, label]) => (
+            <button
+              key={mode}
+              title={label}
+              onClick={() => setNavMode(mode)}
+              className={
+                "grid place-items-center w-7 h-7 rounded-full transition " +
+                (navMode === mode
+                  ? "bg-white text-neutral-900"
+                  : "text-white/60 hover:bg-white/10")
+              }
+            >
+              <IconComp size={14} strokeWidth={2} />
+            </button>
+          ))}
+        </div>
+        <div
+          ref={filmRef}
+          className="flex-1 min-w-0 h-full flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {filmStripPhotos.length === 0 ? (
+            <span className="text-[11px] text-white/40">
+              This photo is not in the current list — use time mode to browse its neighbours.
+            </span>
+          ) : (
+            filmStripPhotos.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => onNavigate(p)}
+                className={
+                  "relative shrink-0 rounded-md overflow-hidden transition " +
+                  (p.id === selectedPhoto.id
+                    ? "ring-2 ring-white"
+                    : "opacity-65 hover:opacity-100")
+                }
+                style={{ width: 56, height: 56 }}
+              >
+                <img
+                  src={`${baseUrl}/photos/thumbnail/${p.id}`}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )
