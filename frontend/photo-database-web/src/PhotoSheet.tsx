@@ -138,18 +138,20 @@ export function PhotoSheet({
     const url = isIncluded
       ? `${baseUrl}/photos/removeTags`
       : `${baseUrl}/photos/addTags`
-    const updatedPhoto: PhotoRecord = {
-      ...selectedPhoto,
-      tags: isIncluded
-        ? tagsArray.filter((t) => t !== tag).join(",")
-        : [...tagsArray, tag].join(","),
-    }
+    const newTags = (
+      isIncluded ? tagsArray.filter((t) => t !== tag) : [...tagsArray, tag]
+    ).join(",")
     await fetch(url, {
       body: JSON.stringify([{ photoId: selectedPhoto.id, tags: [tag] }]),
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
     })
-    onPhotoUpdated(updatedPhoto)
+    // Keep the fetched extended record in sync too - tagsArray derives from
+    // it, so a stale copy would undo every toggle except the latest one.
+    setDetails((prev) =>
+      prev && prev.id === selectedPhoto.id ? { ...prev, tags: newTags } : prev,
+    )
+    onPhotoUpdated({ ...selectedPhoto, tags: newTags })
   }
 
   const lightbox = (
