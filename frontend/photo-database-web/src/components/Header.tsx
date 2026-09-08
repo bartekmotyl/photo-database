@@ -5,8 +5,11 @@ import {
   ChevronDown,
   Heart,
   Layers,
+  LayoutGrid,
   Minus,
   Plus,
+  RectangleHorizontal,
+  RectangleVertical,
   ArrowUpDown,
 } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
@@ -29,7 +32,11 @@ type HeaderProps = {
   onMinScoreChange: (minScore: number) => void
   minScore1: number
   onMinScore1Change: (minScore1: number) => void
+  orientation: Orientation
+  onOrientationChange: (orientation: Orientation) => void
 }
+
+type Orientation = "any" | "landscape" | "portrait"
 
 type SortOption = "newest" | "oldest" | "random" | "score0" | "score1"
 
@@ -164,6 +171,8 @@ export function Header({
   onMinScoreChange,
   minScore1,
   onMinScore1Change,
+  orientation,
+  onOrientationChange,
 }: HeaderProps) {
   const monthChipLabel = selectedMonth ? monthLabel(selectedMonth) : "All months"
   const tagChipLabel =
@@ -351,6 +360,43 @@ export function Header({
             value={minScore1}
             onChange={onMinScore1Change}
           />
+
+          {/* Orientation filter: any / landscape / portrait (exclusive) */}
+          <div
+            className={
+              "flex items-center h-8 px-1 gap-0.5 rounded-full border " +
+              (orientation !== "any"
+                ? "bg-neutral-900 border-neutral-900"
+                : "bg-white/70 border-black/5")
+            }
+          >
+            {(
+              [
+                ["any", LayoutGrid, "Any orientation"],
+                ["landscape", RectangleHorizontal, "Landscape only"],
+                ["portrait", RectangleVertical, "Portrait only"],
+              ] as const
+            ).map(([value, IconComp, label]) => (
+              <button
+                key={value}
+                title={label}
+                aria-label={label}
+                onClick={() => onOrientationChange(value)}
+                className={
+                  "grid place-items-center w-6 h-6 rounded-full transition " +
+                  (orientation === value
+                    ? orientation !== "any"
+                      ? "bg-white text-neutral-900"
+                      : "bg-neutral-900 text-white"
+                    : orientation !== "any"
+                      ? "text-white/60 hover:bg-white/15"
+                      : "text-neutral-500 hover:bg-neutral-200/70")
+                }
+              >
+                <IconComp size={13} strokeWidth={2} />
+              </button>
+            ))}
+          </div>
 
           {/* Sort chip */}
           <Popover open={sortOpen} onOpenChange={setSortOpen}>

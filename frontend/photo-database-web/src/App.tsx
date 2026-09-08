@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import "./App.css"
 import { useAsync, useLocalStorage } from "react-use"
 import * as lodash from "lodash"
-import { baseUrl, PhotoRecord, parseTags } from "."
+import { baseUrl, PhotoRecord, parseTags, photoRatio } from "."
 import { PhotoSheet } from "./PhotoSheet"
 import { Header } from "./components/Header"
 import { SubBar } from "./components/SubBar"
@@ -11,6 +11,7 @@ import { PaginationStrip } from "./components/PaginationStrip"
 
 type SortOrder = "newest" | "oldest" | "random" | "score0" | "score1"
 type TagMatchMode = "all" | "any"
+export type Orientation = "any" | "landscape" | "portrait"
 
 const ROW_HEIGHT_MAP: Record<number, number> = {
   2: 110,
@@ -49,6 +50,7 @@ function App() {
   const [tagMatchMode, setTagMatchMode] = useState<TagMatchMode>("all")
   const [minScore, setMinScore] = useState(0)
   const [minScore1, setMinScore1] = useState(0)
+  const [orientation, setOrientation] = useState<Orientation>("any")
   const [sort, setSort] = useState<SortOrder>("newest")
   const [lightboxPhoto, setLightboxPhoto] = useState<PhotoRecord | undefined>()
 
@@ -96,6 +98,13 @@ function App() {
     )
   }
 
+  if (orientation !== "any") {
+    // Square photos (ratio exactly 1) match neither orientation.
+    filteredPhotos = filteredPhotos.filter((p) =>
+      orientation === "landscape" ? photoRatio(p) > 1 : photoRatio(p) < 1,
+    )
+  }
+
   if (minScore1 > 0) {
     // Evaluation score (slot 1) is 0-100; photos without one don't qualify.
     filteredPhotos = filteredPhotos.filter(
@@ -136,7 +145,7 @@ function App() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [selectedMonth, selectedTags.join(","), tagMatchMode, sort, minScore, minScore1])
+  }, [selectedMonth, selectedTags.join(","), tagMatchMode, sort, minScore, minScore1, orientation])
 
   // Clamp page if filtered result shrinks
   useEffect(() => {
@@ -179,6 +188,8 @@ function App() {
         onMinScoreChange={setMinScore}
         minScore1={minScore1}
         onMinScore1Change={setMinScore1}
+        orientation={orientation}
+        onOrientationChange={setOrientation}
       />
 
       <SubBar
