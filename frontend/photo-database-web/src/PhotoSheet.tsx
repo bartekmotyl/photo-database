@@ -10,6 +10,7 @@ import {
   parseTags,
   TAG_ICON_MAP,
 } from "."
+import { CUSTOM_TAG_ICON_MAP, customTags } from "./customTags"
 import {
   X,
   ChevronLeft,
@@ -88,6 +89,8 @@ export function PhotoSheet({
   useEffect(() => {
     if (!selectedPhoto) return
     const handleKey = (e: KeyboardEvent) => {
+      // Don't navigate while typing in a field (e.g. the custom tags editor).
+      if (e.target instanceof HTMLElement && e.target.closest("input, textarea")) return
       if (e.key === "Escape") {
         onClose()
       } else if (e.key === "ArrowLeft") {
@@ -243,7 +246,32 @@ export function PhotoSheet({
         </div>
       </div>
 
-      {/* All tags of the photo, as text (icons above only cover definedTags) */}
+      {/* Locally defined tags — second toggle row, under the built-in ones */}
+      {customTags.length > 0 && (
+        <div className="flex justify-end items-center gap-1 px-4 pb-1 shrink-0">
+          {customTags.map((ct) => {
+            const on = tagsArray.includes(ct.tag)
+            const IconComp = CUSTOM_TAG_ICON_MAP[ct.tag]
+            return (
+              <button
+                key={ct.tag}
+                title={ct.label}
+                onClick={() => tagClicked(ct.tag)}
+                className={
+                  "grid place-items-center w-8 h-8 rounded-full transition " +
+                  (on
+                    ? "bg-white text-neutral-900"
+                    : "text-white/75 hover:bg-white/10")
+                }
+              >
+                {IconComp && <IconComp size={15} strokeWidth={2} />}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* All tags of the photo, as text (icons above only cover defined tags) */}
       {tagsArray.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 px-4 pb-1 shrink-0">
           {tagsArray.map((tag) => (

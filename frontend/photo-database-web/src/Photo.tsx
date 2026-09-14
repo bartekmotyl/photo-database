@@ -1,7 +1,18 @@
 import { format, parseISO } from "date-fns"
-import { baseUrl, definedTags, parseTags, PhotoRecord, TAG_ICON_MAP } from "."
+import {
+  baseUrl,
+  definedTags,
+  parseTags,
+  PhotoRecord,
+  TAG_ICON_MAP,
+  type TagEntry,
+} from "."
+import { CUSTOM_TAG_ICON_MAP, customTags } from "./customTags"
+import type { LucideIcon } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { createPortal } from "react-dom"
+
+type IconMap = Record<string, LucideIcon>
 
 const ZOOM_PREVIEW_WIDTH = 420
 const ZOOM_PREVIEW_HEIGHT = 320
@@ -127,6 +138,52 @@ export function Photo({
   const chipSize = dense ? 18 : 22
   const iconSize = dense ? 10 : 12
   const appliedTags = definedTags.filter((dt) => tagsArray.includes(dt.tag))
+  const appliedCustomTags = customTags.filter((ct) => tagsArray.includes(ct.tag))
+
+  const chipRow = (tags: TagEntry[], iconMap: IconMap) =>
+    tags.length > 0 && (
+      <div className="flex gap-1">
+        {tags.map((dt) => {
+          const IconComp = iconMap[dt.tag]
+          return (
+            <span
+              key={dt.tag}
+              title={dt.label}
+              className="grid place-items-center rounded-full bg-white/85 text-neutral-800 backdrop-blur shadow-[0_1px_2px_rgba(0,0,0,.15)]"
+              style={{ width: chipSize, height: chipSize }}
+            >
+              {IconComp && <IconComp size={iconSize} strokeWidth={2} />}
+            </span>
+          )
+        })}
+      </div>
+    )
+
+  const toggleRow = (tags: TagEntry[], iconMap: IconMap) =>
+    tags.length > 0 && (
+      <div className="flex gap-0.5">
+        {tags.map((dt) => {
+          const on = tagsArray.includes(dt.tag)
+          const IconComp = iconMap[dt.tag]
+          return (
+            <button
+              key={dt.tag}
+              title={dt.label}
+              onClick={(e) => tagClicked(e, dt.tag)}
+              className={
+                "grid place-items-center rounded-full transition " +
+                (on
+                  ? "bg-white text-neutral-900"
+                  : "bg-black/40 text-white/85 hover:bg-white/25 hover:text-white")
+              }
+              style={{ width: chipSize, height: chipSize }}
+            >
+              {IconComp && <IconComp size={iconSize} strokeWidth={2} />}
+            </button>
+          )
+        })}
+      </div>
+    )
 
   return (
     <div
@@ -144,24 +201,11 @@ export function Photo({
         alt=""
       />
 
-      {/* Applied-tag chips — always visible top-left */}
-      {appliedTags.length > 0 && (
-        <div className="absolute top-1.5 left-1.5 flex gap-1 z-10 pointer-events-none">
-          {appliedTags.map((dt) => {
-            const IconComp = TAG_ICON_MAP[dt.tag]
-            return (
-              <span
-                key={dt.tag}
-                title={dt.label}
-                className="grid place-items-center rounded-full bg-white/85 text-neutral-800 backdrop-blur shadow-[0_1px_2px_rgba(0,0,0,.15)]"
-                style={{ width: chipSize, height: chipSize }}
-              >
-                {IconComp && (
-                  <IconComp size={iconSize} strokeWidth={2} />
-                )}
-              </span>
-            )
-          })}
+      {/* Applied-tag chips — always visible top-left, custom tags below */}
+      {(appliedTags.length > 0 || appliedCustomTags.length > 0) && (
+        <div className="absolute top-1.5 left-1.5 flex flex-col gap-1 z-10 pointer-events-none">
+          {chipRow(appliedTags, TAG_ICON_MAP)}
+          {chipRow(appliedCustomTags, CUSTOM_TAG_ICON_MAP)}
         </div>
       )}
 
@@ -174,27 +218,9 @@ export function Photo({
 
       {/* Hover toolbar — tag toggles + date */}
       <div className="absolute inset-x-0 bottom-0 pt-8 pb-1.5 px-1.5 bg-gradient-to-t from-black/65 via-black/25 to-transparent opacity-0 group-hover:opacity-100 transition z-10 flex items-end justify-between">
-        <div className="flex gap-0.5">
-          {definedTags.map((dt) => {
-            const on = tagsArray.includes(dt.tag)
-            const IconComp = TAG_ICON_MAP[dt.tag]
-            return (
-              <button
-                key={dt.tag}
-                title={dt.label}
-                onClick={(e) => tagClicked(e, dt.tag)}
-                className={
-                  "grid place-items-center rounded-full transition " +
-                  (on
-                    ? "bg-white text-neutral-900"
-                    : "bg-black/40 text-white/85 hover:bg-white/25 hover:text-white")
-                }
-                style={{ width: chipSize, height: chipSize }}
-              >
-                {IconComp && <IconComp size={iconSize} strokeWidth={2} />}
-              </button>
-            )
-          })}
+        <div className="flex flex-col gap-0.5">
+          {toggleRow(customTags, CUSTOM_TAG_ICON_MAP)}
+          {toggleRow(definedTags, TAG_ICON_MAP)}
         </div>
         <span
           className="font-medium tracking-tight text-white/90 leading-none"

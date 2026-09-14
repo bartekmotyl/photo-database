@@ -8,6 +8,7 @@ import { Header } from "./components/Header"
 import { SubBar } from "./components/SubBar"
 import { JustifiedGrid } from "./components/JustifiedGrid"
 import { PaginationStrip } from "./components/PaginationStrip"
+import { CustomTagsEditor } from "./components/CustomTagsEditor"
 
 type SortOrder = "newest" | "oldest" | "random" | "score0" | "score1"
 type TagMatchMode = "all" | "any"
@@ -238,6 +239,8 @@ function App() {
         onNavigate={setLightboxPhoto}
         onPhotoUpdated={onPhotoUpdated}
       />
+
+      <CustomTagsEditor />
     </div>
   )
 }

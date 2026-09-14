@@ -11,9 +11,11 @@ import {
   RectangleHorizontal,
   RectangleVertical,
   ArrowUpDown,
+  type LucideIcon,
 } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { definedTags, TAG_ICON_MAP } from "../index"
+import { CUSTOM_TAG_ICON_MAP, customTags } from "../customTags"
 
 type HeaderProps = {
   scale: number
@@ -150,6 +152,32 @@ function IconBtn({
   )
 }
 
+function TagOption({
+  label,
+  icon: IconComp,
+  on,
+  onClick,
+}: {
+  label: string
+  icon?: LucideIcon
+  on: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        "w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] rounded-md transition " +
+        (on ? "bg-neutral-900 text-white" : "text-neutral-700 hover:bg-neutral-100")
+      }
+    >
+      {IconComp && <IconComp size={13} strokeWidth={2} />}
+      <span className="flex-1 text-left">{label}</span>
+      {on && <span className="text-[10px] opacity-70">✓</span>}
+    </button>
+  )
+}
+
 function monthLabel(month: string): string {
   return format(parse(month, "yyyy-MM", new Date()), "MMM yyyy")
 }
@@ -179,7 +207,8 @@ export function Header({
     selectedTags.length === 0
       ? "Any tag"
       : selectedTags.length === 1
-        ? (definedTags.find((t) => t.tag === selectedTags[0])?.label ?? selectedTags[0])
+        ? ([...definedTags, ...customTags].find((t) => t.tag === selectedTags[0])?.label ??
+          selectedTags[0])
         : `${selectedTags.length} tags`
   const sortLabel = SORT_LABELS[sort]
 
@@ -198,7 +227,9 @@ export function Header({
   // Tags found in the collection that are not among the predefined ones
   // (e.g. ai-* tags written by the labeler) - filterable, rendered without icons.
   const extraTags = allTags.filter(
-    (tag) => !definedTags.some((dt) => dt.tag === tag),
+    (tag) =>
+      !definedTags.some((dt) => dt.tag === tag) &&
+      !customTags.some((ct) => ct.tag === tag),
   )
 
   return (
@@ -289,51 +320,38 @@ export function Header({
                   </button>
                 ))}
               </div>
-              {definedTags.map((dt) => {
-                const IconComp = TAG_ICON_MAP[dt.tag]
-                const on = selectedTags.includes(dt.tag)
-                return (
-                  <button
-                    key={dt.tag}
-                    onClick={() => { toggleTag(dt.tag); setTagOpen(false) }}
-                    className={
-                      "w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] rounded-md transition " +
-                      (on
-                        ? "bg-neutral-900 text-white"
-                        : "text-neutral-700 hover:bg-neutral-100")
-                    }
-                  >
-                    {IconComp && <IconComp size={13} strokeWidth={2} />}
-                    <span className="flex-1 text-left">{dt.label}</span>
-                    {on && (
-                      <span className="text-[10px] opacity-70">✓</span>
-                    )}
-                  </button>
-                )
-              })}
+              {definedTags.map((dt) => (
+                <TagOption
+                  key={dt.tag}
+                  label={dt.label}
+                  icon={TAG_ICON_MAP[dt.tag]}
+                  on={selectedTags.includes(dt.tag)}
+                  onClick={() => { toggleTag(dt.tag); setTagOpen(false) }}
+                />
+              ))}
+              {customTags.length > 0 && (
+                <div className="my-1 border-t border-black/5" />
+              )}
+              {customTags.map((ct) => (
+                <TagOption
+                  key={ct.tag}
+                  label={ct.label}
+                  icon={CUSTOM_TAG_ICON_MAP[ct.tag]}
+                  on={selectedTags.includes(ct.tag)}
+                  onClick={() => { toggleTag(ct.tag); setTagOpen(false) }}
+                />
+              ))}
               {extraTags.length > 0 && (
                 <div className="my-1 border-t border-black/5" />
               )}
-              {extraTags.map((tag) => {
-                const on = selectedTags.includes(tag)
-                return (
-                  <button
-                    key={tag}
-                    onClick={() => { toggleTag(tag); setTagOpen(false) }}
-                    className={
-                      "w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] rounded-md transition " +
-                      (on
-                        ? "bg-neutral-900 text-white"
-                        : "text-neutral-700 hover:bg-neutral-100")
-                    }
-                  >
-                    <span className="flex-1 text-left">{tag}</span>
-                    {on && (
-                      <span className="text-[10px] opacity-70">✓</span>
-                    )}
-                  </button>
-                )
-              })}
+              {extraTags.map((tag) => (
+                <TagOption
+                  key={tag}
+                  label={tag}
+                  on={selectedTags.includes(tag)}
+                  onClick={() => { toggleTag(tag); setTagOpen(false) }}
+                />
+              ))}
               <div className="my-1 border-t border-black/5" />
               <button
                 onClick={() => { onTagsChange([]); setTagOpen(false) }}
