@@ -6,9 +6,9 @@ tl;dr (just tell me how to run demo)
 
 - clone the repository
 - `cd demo`
-- `docker-compose build` (it may take a while when you build images for the first time)
-- `docker-compose up loader` (and wait until it finishes)
-- `docker-compose up -d` (and wait a bit - a minute or two - until indexer finishes processing sample photos included in the demo setup)
+- `docker compose build` (it may take a while when you build images for the first time)
+- `docker compose up loader` (and wait until it finishes)
+- `docker compose up -d` (and wait a bit - a minute or two - until indexer finishes processing sample photos included in the demo setup)
 
 Then open http://localhost:8067/ in your browser and enjoy PhotoDB.
 
